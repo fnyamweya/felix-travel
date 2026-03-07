@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  install:
+  typecheck:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,42 +25,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Upload deps artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: deps
-          path: |
-            node_modules
-            .pnpm-store
-          retention-days: 1
-
-  typecheck:
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Download deps artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deps
-
       - name: Typecheck
         run: pnpm turbo typecheck
 
   test:
     runs-on: ubuntu-latest
-    needs: install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,17 +43,14 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Download deps artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deps
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Test
         run: pnpm turbo test
 
   lint:
     runs-on: ubuntu-latest
-    needs: install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,10 +64,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Download deps artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deps
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm turbo lint
@@ -109,24 +73,9 @@ jobs:
 
   migration-check:
     runs-on: ubuntu-latest
-    needs: install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Download deps artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deps
 
       - name: Check migration files
         run: |
