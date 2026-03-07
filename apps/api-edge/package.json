@@ -1,0 +1,35 @@
+{
+  "name": "@felix-travel/api-edge",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .wrangler"
+  },
+  "dependencies": {
+    "hono": "^4.4.0",
+    "drizzle-orm": "^0.32.0",
+    "zod": "^3.23.0",
+    "@hono/zod-validator": "^0.3.0",
+    "@felix-travel/config": "workspace:*",
+    "@felix-travel/types": "workspace:*",
+    "@felix-travel/db": "workspace:*",
+    "@felix-travel/auth": "workspace:*",
+    "@felix-travel/validation": "workspace:*",
+    "@felix-travel/sdk-tingg": "workspace:*",
+    "@felix-travel/charges": "workspace:*",
+    "@felix-travel/telemetry": "workspace:*",
+    "@felix-travel/identity": "workspace:*",
+    "@felix-travel/maker-checker": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "wrangler": "^3.60.0",
+    "vitest": "^1.6.0",
+    "@cloudflare/workers-types": "^4.20240725.0"
+  }
+}

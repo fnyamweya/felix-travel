@@ -1,0 +1,29 @@
+{
+  "name": "@felix-travel/db",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./repositories": "./src/repositories/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply felix-travel-db --local --config ../../apps/api-edge/wrangler.toml",
+    "db:seed": "wrangler d1 execute felix-travel-db --local --config ../../apps/api-edge/wrangler.toml --file=./src/seeds/seed.sql",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.32.0",
+    "@felix-travel/types": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.23.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^3.60.0"
+  }
+}

@@ -1,0 +1,88 @@
+# =============================================================
+# FELIX TRAVEL - Cloudflare Worker Secrets (.dev.vars)
+# =============================================================
+# This file mirrors .env.example but is for Wrangler's .dev.vars format.
+# Wrangler reads .dev.vars automatically in local dev (wrangler dev).
+# NEVER commit your actual .dev.vars file.
+# Copy this to .dev.vars and fill in real values.
+# =============================================================
+
+APP_ENV=development
+APP_NAME=Felix Travel
+APP_BASE_URL=http://localhost:8787
+CUSTOMER_APP_URL=http://localhost:3000
+DASHBOARD_APP_URL=http://localhost:3001
+API_BASE_URL=http://localhost:8787
+DEFAULT_TIMEZONE=Africa/Nairobi
+DEFAULT_CURRENCY=KES
+PLATFORM_COUNTRY_CODE=KE
+
+JWT_ISSUER=https://api.felix.travel
+JWT_AUDIENCE=felix-travel-clients
+JWT_ACCESS_TTL_SECONDS=900
+JWT_REFRESH_TTL_SECONDS=2592000
+JWT_PRIVATE_KEY=base64_encoded_rsa_private_key_here
+JWT_PUBLIC_KEY=base64_encoded_rsa_public_key_here
+
+SESSION_COOKIE_NAME=felix_session
+SESSION_COOKIE_SECURE=false
+SESSION_COOKIE_DOMAIN=localhost
+MAGIC_LINK_TTL_MINUTES=15
+PASSWORD_RESET_TTL_MINUTES=60
+OTP_TTL_MINUTES=10
+PASSWORD_HASH_COST=12
+HMAC_WEBHOOK_SIGNING_ALGO=SHA-256
+INTERNAL_EVENT_SIGNING_SECRET=dev_internal_secret_change_in_production
+CSRF_SECRET=dev_csrf_secret_change_in_production
+ENCRYPTION_KEY=dev_encryption_key_change_in_production_32b
+MFA_ENCRYPTION_KEY=dev_mfa_encryption_key_change_in_prod_32b
+AUDIT_LOG_RETENTION_DAYS=365
+
+EMAIL_PROVIDER=resend
+EMAIL_FROM=Felix Travel <no-reply@felix.travel>
+RESEND_API_KEY=re_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SMS_PROVIDER=africas_talking
+SMS_SENDER_ID=FELIX
+AT_API_KEY=atsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+AT_USERNAME=sandbox
+
+TINGG_ENVIRONMENT=sandbox
+TINGG_BASE_URL=https://api.tingg.africa/v3
+TINGG_CLIENT_ID=your_sandbox_client_id
+TINGG_CLIENT_SECRET=your_sandbox_client_secret
+TINGG_SERVICE_CODE=your_sandbox_service_code
+TINGG_PAYOUT_SERVICE_CODE=your_sandbox_payout_service_code
+TINGG_COLLECTION_COUNTRY_CODE=KE
+TINGG_COLLECTION_CURRENCY_CODE=KES
+TINGG_CALLBACK_CHECKOUT_URL=https://your-dev-tunnel.ngrok.io/v1/webhooks/tingg/checkout
+TINGG_CALLBACK_PAYOUT_URL=https://your-dev-tunnel.ngrok.io/v1/webhooks/tingg/payout
+TINGG_SUCCESS_REDIRECT_URL=http://localhost:3000/payment/success
+TINGG_FAIL_REDIRECT_URL=http://localhost:3000/payment/failed
+TINGG_TOKEN_CACHE_TTL_SECONDS=3300
+TINGG_HTTP_TIMEOUT_MS=30000
+TINGG_MAX_RETRIES=3
+
+R2_PUBLIC_BASE_URL=http://localhost:8787/media
+MEDIA_MAX_UPLOAD_MB=20
+MEDIA_ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp,image/gif,application/pdf
+
+RECONCILIATION_CRON_SCHEDULE=0 2 * * *
+PAYOUT_CRON_SCHEDULE=0 9 * * 1-5
+PENDING_PAYMENT_POLL_CRON_SCHEDULE=*/5 * * * *
+PENDING_PAYOUT_POLL_CRON_SCHEDULE=*/10 * * * *
+LOG_LEVEL=debug
+ENABLE_REQUEST_LOGGING=true
+ENABLE_SQL_LOGGING=false
+FEATURE_ENABLE_CROSS_BORDER_PAYOUTS=false
+FEATURE_ENABLE_PROVIDER_CALLBACKS=true
+FEATURE_ENABLE_AGENT_QUOTES=true
+FEATURE_ENABLE_CARD_PAYMENTS=false
+FEATURE_ENABLE_EMAIL_NOTIFICATIONS=true
+FEATURE_ENABLE_SMS_NOTIFICATIONS=false
+
+DEFAULT_SETTLEMENT_DELAY_DAYS=3
+REFUND_APPROVAL_THRESHOLD=100000
+PAYOUT_APPROVAL_THRESHOLD=500000
+MAX_IDEMPOTENCY_TTL_HOURS=24
+MAX_WEBHOOK_RETRY_ATTEMPTS=5
+PROVIDER_CALLBACK_TIMEOUT_MS=10000

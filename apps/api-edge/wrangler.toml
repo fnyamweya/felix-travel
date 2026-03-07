@@ -1,0 +1,111 @@
+name = "felix-travel-api"
+main = "src/index.ts"
+compatibility_date = "2024-07-25"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_ENV = "development"
+APP_NAME = "Felix Travel"
+LOG_LEVEL = "debug"
+DEFAULT_CURRENCY = "KES"
+DEFAULT_TIMEZONE = "Africa/Nairobi"
+PLATFORM_COUNTRY_CODE = "KE"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "felix-travel-db"
+database_id = "YOUR_D1_DATABASE_ID"
+migrations_dir = "../../packages/db/src/migrations"
+
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "YOUR_CACHE_KV_ID"
+
+[[kv_namespaces]]
+binding = "IDEMPOTENCY_KV"
+id = "YOUR_IDEMPOTENCY_KV_ID"
+
+[[kv_namespaces]]
+binding = "TOKEN_CACHE_KV"
+id = "YOUR_TOKEN_CACHE_KV_ID"
+
+[[kv_namespaces]]
+binding = "REPLAY_PROTECTION_KV"
+id = "YOUR_REPLAY_PROTECTION_KV_ID"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "YOUR_RATE_LIMIT_KV_ID"
+
+[[kv_namespaces]]
+binding = "POLICY_CACHE_KV"
+id = "YOUR_POLICY_CACHE_KV_ID"
+
+[[kv_namespaces]]
+binding = "TRUSTED_DEVICE_KV"
+id = "YOUR_TRUSTED_DEVICE_KV_ID"
+
+[[kv_namespaces]]
+binding = "RISK_CACHE_KV"
+id = "YOUR_RISK_CACHE_KV_ID"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "felix-travel-media"
+
+[[queues.producers]]
+binding = "OUTBOUND_WEBHOOK_QUEUE"
+queue = "felix-travel-outbound-webhooks"
+
+[[queues.producers]]
+binding = "RECONCILIATION_QUEUE"
+queue = "felix-travel-reconciliation"
+
+[[queues.producers]]
+binding = "NOTIFICATION_QUEUE"
+queue = "felix-travel-notifications"
+
+[[queues.producers]]
+binding = "APPROVAL_QUEUE"
+queue = "felix-travel-approval"
+
+[[queues.producers]]
+binding = "PAYMENT_QUEUE"
+queue = "felix-travel-payment"
+
+[[queues.producers]]
+binding = "PAYOUT_QUEUE"
+queue = "felix-travel-payout"
+
+[[queues.consumers]]
+queue = "felix-travel-outbound-webhooks"
+max_batch_size = 10
+max_batch_timeout = 5
+
+[[queues.consumers]]
+queue = "felix-travel-reconciliation"
+max_batch_size = 5
+max_batch_timeout = 30
+
+[[queues.consumers]]
+queue = "felix-travel-notifications"
+max_batch_size = 20
+max_batch_timeout = 5
+
+[[queues.consumers]]
+queue = "felix-travel-approval"
+max_batch_size = 10
+max_batch_timeout = 5
+
+[[queues.consumers]]
+queue = "felix-travel-payment"
+max_batch_size = 10
+max_batch_timeout = 5
+
+[[queues.consumers]]
+queue = "felix-travel-payout"
+max_batch_size = 5
+max_batch_timeout = 10
+
+[triggers]
+crons = ["*/5 * * * *", "*/10 * * * *", "0 2 * * *", "0 9 * * 1-5"]
