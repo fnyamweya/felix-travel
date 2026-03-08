@@ -51,6 +51,10 @@ INSERT OR IGNORE INTO ledger_accounts (id, code, name, type, provider_id, is_act
 -- ── 4. Provider subledger accounts for seed provider prv_001 ──────────────────
 -- These represent the provider's slice of the platform ledger.
 -- Balances are derived (never stored directly) via sum of entry lines.
+-- Requires a seed service provider row to satisfy FK constraint.
+INSERT OR IGNORE INTO service_providers (id, name, slug, email, phone, country_code, currency_code, is_active, is_verified)
+VALUES ('prv_001', 'Savanna Safari Tours', 'savanna-safari-tours', 'info@savannasafari.co.ke', '+254700000000', 'KE', 'KES', 1, 1);
+
 INSERT OR IGNORE INTO ledger_accounts (id, code, name, type, provider_id, is_active, created_at) VALUES
   ('lac_prv001_hold',     '7100', 'Provider Hold — Savanna Safari',            'liability', 'prv_001', 1, datetime('now')),
   ('lac_prv001_payable',  '7200', 'Provider Payable — Savanna Safari',         'liability', 'prv_001', 1, datetime('now')),
