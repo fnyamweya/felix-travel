@@ -2,6 +2,9 @@ name = "felix-travel-api"
 main = "src/index.ts"
 compatibility_date = "2024-07-25"
 compatibility_flags = ["nodejs_compat"]
+routes = [
+  { pattern = "travel-apis.felix.co.ke", custom_domain = true }
+]
 
 [vars]
 APP_ENV = "development"
@@ -10,6 +13,10 @@ LOG_LEVEL = "debug"
 DEFAULT_CURRENCY = "KES"
 DEFAULT_TIMEZONE = "Africa/Nairobi"
 PLATFORM_COUNTRY_CODE = "KE"
+APP_BASE_URL = "https://travel-apis.felix.co.ke"
+API_BASE_URL = "https://travel-apis.felix.co.ke"
+CUSTOMER_APP_URL = "https://travel.felix.co.ke"
+DASHBOARD_APP_URL = "https://travel-dash.felix.co.ke"
 
 [[d1_databases]]
 binding = "DB"

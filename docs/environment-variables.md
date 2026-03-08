@@ -300,6 +300,38 @@ Defined in `wrangler.toml` under `[triggers]`:
 
 ---
 
+## Custom Domains
+
+All services are deployed under subdomains of `felix.co.ke`. The zone must be active in Cloudflare under the same account.
+
+| Service | Subdomain | Type |
+|---|---|---|
+| Customer web app | `travel.felix.co.ke` | Cloudflare Pages custom domain |
+| Dashboard web app | `travel-dash.felix.co.ke` | Cloudflare Pages custom domain |
+| API worker | `travel-apis.felix.co.ke` | Worker custom domain (via `routes` in `wrangler.toml`) |
+
+### How it works
+
+- **API worker**: The `routes` field in `wrangler.toml` declares `travel-apis.felix.co.ke` as a `custom_domain`. When you run `wrangler deploy`, Cloudflare automatically creates the DNS CNAME record and provisions TLS. No manual DNS setup needed.
+- **Pages projects**: Custom domains are added via the Cloudflare API during the Setup Infrastructure workflow, or manually via **Pages → project → Custom domains → Set up a custom domain**. Cloudflare provisions the DNS record and TLS certificate automatically.
+
+### Prerequisites
+
+1. The zone `felix.co.ke` must be added to the same Cloudflare account and be in **Active** status.
+2. The `CLOUDFLARE_API_TOKEN` must have **Zone → DNS → Edit** permission for this zone (required for Cloudflare to create CNAME records for custom domains).
+
+### DNS records (auto-managed)
+
+Cloudflare creates these automatically when custom domains are configured:
+
+| Type | Name | Target |
+|---|---|---|
+| CNAME | `travel-apis` | `felix-travel-api.workers.dev` |
+| CNAME | `travel` | `felix-travel-web-customer.pages.dev` |
+| CNAME | `travel-dash` | `felix-travel-web-dashboard.pages.dev` |
+
+---
+
 ## GitHub Actions Secrets
 
 The CI/CD workflows require these secrets configured in **GitHub → Settings → Secrets and variables → Actions**:
@@ -333,17 +365,17 @@ The token used in CI (`CLOUDFLARE_API_TOKEN`) needs the following permissions:
 
 ### Zone Scope
 
-If deploying to a custom domain, also add:
+Required for custom domains (`travel.felix.co.ke`, `travel-dash.felix.co.ke`, `travel-apis.felix.co.ke`):
 
 | Resource | Permission | Reason |
 |---|---|---|
-| **Zone → Workers Routes** | Edit | Bind the worker to custom domain routes. |
-| **Zone → DNS** | Edit | Only if the token manages DNS records for custom domains. |
+| **Zone → Workers Routes** | Edit | Bind the API worker to `travel-apis.felix.co.ke`. |
+| **Zone → DNS** | Edit | Auto-create CNAME records for all custom domains. |
 
 ### Token Settings
 
 - **Account Resources**: Include → Your account (or the specific account).
-- **Zone Resources**: Include → Specific zone (your domain), if using custom domains. Otherwise not needed.
+- **Zone Resources**: Include → `felix.co.ke` zone.
 - **Client IP Address Filtering**: Optionally restrict to GitHub Actions IP ranges for added security.
 - **TTL**: Set an expiration date and rotate regularly.
 

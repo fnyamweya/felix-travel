@@ -92,6 +92,32 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Configure custom domains
+        run: |
+          # Custom domains for Pages projects (via Cloudflare API)
+          API_BASE="https://api.cloudflare.com/client/v4"
+          ACCT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          AUTH="Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          add_pages_domain() {
+            local project="$1" domain="$2"
+            echo "Adding custom domain $domain to Pages project $project..."
+            curl -s -X POST "$API_BASE/accounts/$ACCT_ID/pages/projects/$project/domains" \
+              -H "$AUTH" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$domain\"}" | jq '.success // .errors'
+          }
+
+          add_pages_domain "felix-travel-web-customer" "travel.felix.co.ke"
+          add_pages_domain "felix-travel-web-dashboard" "travel-dash.felix.co.ke"
+
+          # The API worker custom domain is configured via routes in wrangler.toml
+          # and is applied automatically during `wrangler deploy`.
+          echo "API worker domain (travel-apis.felix.co.ke) will be set on next deploy via wrangler.toml routes."
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Set worker secrets
         if: ${{ !inputs.skip_secrets }}
         run: |
@@ -201,5 +227,14 @@ jobs:
           echo "- 1x R2 bucket" >> $GITHUB_STEP_SUMMARY
           echo "- 6x Queues" >> $GITHUB_STEP_SUMMARY
           echo "- 2x Pages projects" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Custom Domains" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Subdomain |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| web-customer | travel.felix.co.ke |" >> $GITHUB_STEP_SUMMARY
+          echo "| web-dashboard | travel-dash.felix.co.ke |" >> $GITHUB_STEP_SUMMARY
+          echo "| api-edge | travel-apis.felix.co.ke |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Prerequisite:** The zone \`felix.co.ke\` must be active in Cloudflare (same account)." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Next step:** Update \`wrangler.toml\` with the resource IDs from the logs above, then run the deploy workflows." >> $GITHUB_STEP_SUMMARY
