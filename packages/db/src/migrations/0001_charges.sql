@@ -249,6 +249,11 @@ CREATE INDEX IF NOT EXISTS charge_allocation_lines_definition_idx ON charge_allo
 CREATE INDEX IF NOT EXISTS charge_allocation_lines_status_idx     ON charge_allocation_lines (status);
 CREATE INDEX IF NOT EXISTS charge_allocation_lines_ledger_idx     ON charge_allocation_lines (ledger_entry_id);
 
+-- ── Seed: System Admin User ───────────────────────────────────────────────────
+-- Required as created_by FK target for seed charge definitions below.
+INSERT OR IGNORE INTO users (id, email, email_verified, role, is_active)
+VALUES ('usr_admin_001', 'system@felix.co.ke', 1, 'admin', 1);
+
 -- ── Seed: Core Charge Definitions ────────────────────────────────────────────
 -- These are the baseline definitions for a typical travel marketplace.
 -- Rate-specific data is in charge_rule_sets + charge_rules below.
