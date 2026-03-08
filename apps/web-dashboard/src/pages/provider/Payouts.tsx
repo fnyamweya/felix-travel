@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -37,7 +37,7 @@ export function ProviderPayouts() {
               </tr>
             </thead>
             <tbody>
-              {((payouts?.items ?? payouts) ?? []).map((p: any) => (
+              {(payouts?.payouts ?? []).map((p: any) => (
                 <tr key={p.id} style={{ background: selectedPayout === p.id ? 'var(--color-neutral-100)' : undefined }}>
                   <td style={{ fontWeight: 600 }}>{formatMoney(p.amount, p.currencyCode)}</td>
                   <td><span className={`badge badge-${p.status === 'succeeded' ? 'success' : p.status === 'failed' ? 'danger' : 'warning'}`}>{p.status}</span></td>

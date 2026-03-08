@@ -15,7 +15,7 @@ export interface SmsNotifierDeps {
 }
 
 export interface SmsNotifier {
-    send(to: string, message: string): Promise<{ success: boolean; messageId?: string }>;
+    send(to: string, message: string): Promise<{ success: boolean; messageId?: string | undefined }>;
 }
 
 export function createSmsNotifier(deps: SmsNotifierDeps): SmsNotifier {

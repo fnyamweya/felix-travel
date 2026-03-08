@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -12,11 +12,11 @@ export function AdminPayouts() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-payouts', status],
-    queryFn: () => apiClient.admin.listPayouts({ status: status || undefined }),
+    queryFn: () => apiClient.admin.listPayouts(status ? { status } : {}),
   });
 
   const runMutation = useMutation({
-    mutationFn: () => apiClient.payouts.runPayout({}),
+    mutationFn: () => apiClient.payouts.runPayout('all', { idempotencyKey: crypto.randomUUID() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-payouts'] }),
   });
 
@@ -54,7 +54,7 @@ export function AdminPayouts() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.items ?? data ?? []).map((p: any) => (
+                {(data?.payouts ?? []).map((p: any) => (
                   <tr key={p.id}>
                     <td>{p.providerId}</td>
                     <td style={{ fontWeight: 600 }}>{formatMoney(p.amount, p.currencyCode)}</td>

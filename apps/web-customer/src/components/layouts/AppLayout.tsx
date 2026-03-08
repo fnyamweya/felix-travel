@@ -1,4 +1,3 @@
-import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context.js';
 

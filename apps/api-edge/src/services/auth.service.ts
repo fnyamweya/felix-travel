@@ -223,10 +223,12 @@ export class AuthService {
     };
   }
 
-  private toAuthUser(user: { id: string; email: string; role: string; emailVerified: boolean; createdAt: string; phone?: string | null }): AuthUser {
+  private toAuthUser(user: { id: string; email: string; role: string; emailVerified: boolean; createdAt: string; phone?: string | null; firstName?: string; lastName?: string }): AuthUser {
     return {
       id: user.id,
       email: user.email,
+      firstName: user.firstName ?? '',
+      lastName: user.lastName ?? '',
       role: user.role as AuthUser['role'],
       providerId: null,
       emailVerified: user.emailVerified,

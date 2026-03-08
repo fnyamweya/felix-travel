@@ -6,11 +6,13 @@
     "types": "./src/index.ts",
     "scripts": {
         "typecheck": "tsc --noEmit",
-        "test": "vitest run"
+        "test": "vitest run --passWithNoTests"
     },
     "dependencies": {
         "@felix-travel/types": "workspace:*",
-        "@felix-travel/telemetry": "workspace:*"
+        "@felix-travel/telemetry": "workspace:*",
+        "@felix-travel/db": "workspace:*",
+        "drizzle-orm": "^0.32.0"
     },
     "devDependencies": {
         "typescript": "^5.5.0",

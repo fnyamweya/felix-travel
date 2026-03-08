@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -12,7 +12,7 @@ export function AdminBookings() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-bookings', page, status],
-    queryFn: () => apiClient.admin.listBookings({ page, limit: 25, status: status || undefined }),
+    queryFn: () => apiClient.admin.listBookings({ page, pageSize: 25, ...(status ? { status } : {}) }),
   });
 
   return (
@@ -49,7 +49,7 @@ export function AdminBookings() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.items ?? []).map((b: any) => (
+                {(data?.bookings ?? []).map((b: any) => (
                   <tr key={b.id}>
                     <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.8rem' }}>{b.reference}</td>
                     <td>{b.customerId}</td>
@@ -66,11 +66,11 @@ export function AdminBookings() {
           </div>
         )}
 
-        {data?.total > 25 && (
+        {(data?.meta?.total ?? 0) > 25 && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
             <button className="btn-secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</button>
             <span style={{ padding: '0.5rem', fontSize: '0.875rem' }}>Page {page}</span>
-            <button className="btn-secondary" onClick={() => setPage(p => p + 1)} disabled={data?.items?.length < 25}>Next</button>
+            <button className="btn-secondary" onClick={() => setPage(p => p + 1)} disabled={(data?.bookings?.length ?? 0) < 25}>Next</button>
           </div>
         )}
       </div>

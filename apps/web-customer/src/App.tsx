@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './lib/auth-context.js';
 import { AppLayout } from './components/layouts/AppLayout.js';

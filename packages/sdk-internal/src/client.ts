@@ -65,12 +65,13 @@ export class FelixApiClient {
     if (this.accessToken) headers['Authorization'] = `Bearer ${this.accessToken}`;
     if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
 
-    const response = await fetch(url.toString(), {
+    const init: RequestInit = {
       method,
       headers,
       credentials: 'include', // sends httpOnly refresh token cookie
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
+    };
+    if (options.body) init.body = JSON.stringify(options.body);
+    const response = await fetch(url.toString(), init);
 
     // Token expired — attempt refresh once
     if (response.status === 401 && this.accessToken) {
@@ -112,11 +113,14 @@ export class FelixApiClient {
   }
 
   get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>('GET', path, { params });
+    return this.request<T>('GET', path, params !== undefined ? { params } : {});
   }
 
   post<T>(path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
-    return this.request<T>('POST', path, { body, idempotencyKey });
+    return this.request<T>('POST', path, {
+      ...(body !== undefined && { body }),
+      ...(idempotencyKey !== undefined && { idempotencyKey }),
+    });
   }
 
   patch<T>(path: string, body?: unknown): Promise<T> {

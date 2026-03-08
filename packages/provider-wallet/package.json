@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@felix-travel/db": "workspace:*",
-    "@felix-travel/types": "workspace:*"
+    "@felix-travel/types": "workspace:*",
+    "drizzle-orm": "^0.32.0"
   },
   "devDependencies": {
     "typescript": "^5.5.0"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -12,7 +12,7 @@ export function AdminRefunds() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-refunds', status],
-    queryFn: () => apiClient.admin.listRefunds({ status: status || undefined }),
+    queryFn: () => apiClient.admin.listRefunds(status ? { status } : {}),
   });
 
   const approveMutation = useMutation({
@@ -57,7 +57,7 @@ export function AdminRefunds() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.items ?? data ?? []).map((r: any) => (
+                {(data?.refunds ?? []).map((r: any) => (
                   <tr key={r.id}>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{r.bookingId?.slice(-8)}</td>
                     <td>{r.reason}</td>

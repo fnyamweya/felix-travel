@@ -1,4 +1,3 @@
-import React from 'react';
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'badge-neutral' },

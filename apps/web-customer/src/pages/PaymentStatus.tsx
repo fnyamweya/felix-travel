@@ -1,4 +1,3 @@
-import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
@@ -6,7 +5,7 @@ import { apiClient } from '../lib/api-client.js';
 export function PaymentStatusPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
 
-  const { data: payment, refetch } = useQuery({
+  const { data: payment } = useQuery({
     queryKey: ['payment', paymentId],
     queryFn: () => apiClient.payments.getStatus(paymentId!),
     enabled: !!paymentId,

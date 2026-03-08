@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
@@ -13,7 +12,7 @@ export function SearchPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['listings', q],
-    queryFn: () => apiClient.catalog.search({ q, limit: 24 }),
+    queryFn: () => apiClient.catalog.search({ q }),
   });
 
   return (
@@ -31,14 +30,14 @@ export function SearchPage() {
 
       {isLoading && <div>Searching…</div>}
 
-      {data && data.length === 0 && (
+      {data && data.listings.length === 0 && (
         <div style={{ textAlign: 'center', padding: '4rem 0', color: '#5e6c84' }}>
           No tours found. Try a different search.
         </div>
       )}
 
       <div className="grid-3">
-        {(data ?? []).map((listing: any) => (
+        {(data?.listings ?? []).map((listing: any) => (
           <Link key={listing.id} to={`/listings/${listing.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="card" style={{ cursor: 'pointer', transition: 'box-shadow 0.15s' }}
               onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}

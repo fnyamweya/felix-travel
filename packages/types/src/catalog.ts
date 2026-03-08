@@ -34,6 +34,7 @@ export interface Listing {
   shortDescription: string;
   description: string;
   coverImageUrl: string | null;
+  location: string | null;
   mediaAssets: MediaAsset[];
   basePrice: Money;
   currencyCode: string;

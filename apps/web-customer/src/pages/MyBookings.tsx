@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
@@ -16,7 +15,7 @@ export function MyBookingsPage() {
 
   if (isLoading) return <div className="page">Loading bookings…</div>;
 
-  const bookings = data ?? [];
+  const bookings = data?.bookings ?? [];
 
   return (
     <div className="page">

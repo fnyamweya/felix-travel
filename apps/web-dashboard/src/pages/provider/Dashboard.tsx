@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 import { useAuth } from '../../lib/auth-context.js';
@@ -9,15 +8,15 @@ function formatMoney(amount: number, currency = 'KES') {
 }
 
 export function ProviderDashboard() {
-  const { user } = useAuth();
+  const { } = useAuth();
 
   const { data: payouts } = useQuery({
     queryKey: ['provider-payouts'],
     queryFn: () => apiClient.payouts.list(),
   });
 
-  const pendingPayouts = (payouts?.items ?? payouts ?? []).filter((p: any) => p.status === 'pending' || p.status === 'scheduled');
-  const totalEarned = (payouts?.items ?? payouts ?? []).filter((p: any) => p.status === 'succeeded').reduce((s: number, p: any) => s + p.amount, 0);
+  const pendingPayouts = (payouts?.payouts ?? []).filter((p: any) => p.status === 'pending' || p.status === 'scheduled');
+  const totalEarned = (payouts?.payouts ?? []).filter((p: any) => p.status === 'succeeded').reduce((s: number, p: any) => s + p.amount, 0);
 
   return (
     <div>
@@ -58,7 +57,7 @@ export function ProviderDashboard() {
               </tr>
             </thead>
             <tbody>
-              {(payouts?.items ?? payouts ?? []).slice(0, 5).map((p: any) => (
+              {(payouts?.payouts ?? []).slice(0, 5).map((p: any) => (
                 <tr key={p.id}>
                   <td style={{ fontWeight: 600 }}>{formatMoney(p.amount, p.currencyCode)}</td>
                   <td><span className={`badge badge-${p.status === 'succeeded' ? 'success' : p.status === 'failed' ? 'danger' : 'warning'}`}>{p.status}</span></td>

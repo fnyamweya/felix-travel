@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { type FormEvent, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
 
@@ -9,7 +9,6 @@ function formatMoney(amount: number, currency: string) {
 
 export function CheckoutPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
@@ -22,12 +21,12 @@ export function CheckoutPage() {
 
   const checkoutMutation = useMutation({
     mutationFn: (data: { bookingId: string; MSISDN: string; accountNumber: string }) =>
-      apiClient.payments.initiateCheckout(data),
+      apiClient.payments.initiateCheckout(data, crypto.randomUUID()),
     onSuccess: (result) => {
-      if (result.checkoutURL) {
-        window.location.href = result.checkoutURL;
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
       } else {
-        navigate(`/payment-status/${result.paymentId}`);
+        navigate(`/payment-status/${result.id}`);
       }
     },
     onError: (err: any) => {
@@ -35,7 +34,7 @@ export function CheckoutPage() {
     },
   });
 
-  const handlePay = (e: React.FormEvent) => {
+  const handlePay = (e: FormEvent) => {
     e.preventDefault();
     if (!booking) return;
     setError('');

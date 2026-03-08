@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -12,7 +11,7 @@ export function ProviderSettlement() {
     queryFn: () => apiClient.payouts.list(),
   });
 
-  const items = payouts?.items ?? payouts ?? [];
+  const items = payouts?.payouts ?? [];
   const succeeded = items.filter((p: any) => p.status === 'succeeded');
   const totalGross = succeeded.reduce((s: number, p: any) => s + (p.amount ?? 0), 0);
   const currency = succeeded[0]?.currencyCode ?? 'KES';

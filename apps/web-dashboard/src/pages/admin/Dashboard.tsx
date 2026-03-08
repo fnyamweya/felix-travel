@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -17,13 +16,13 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 }
 
 export function AdminDashboard() {
-  const { data: bookings } = useQuery({ queryKey: ['admin-bookings'], queryFn: () => apiClient.admin.listBookings({ limit: 100 }) });
-  const { data: payouts } = useQuery({ queryKey: ['admin-payouts'], queryFn: () => apiClient.admin.listPayouts({ limit: 100 }) });
+  const { data: bookings } = useQuery({ queryKey: ['admin-bookings'], queryFn: () => apiClient.admin.listBookings({ pageSize: 100 }) });
+  const { data: payouts } = useQuery({ queryKey: ['admin-payouts'], queryFn: () => apiClient.admin.listPayouts({ pageSize: 100 }) });
 
-  const totalBookings = bookings?.total ?? 0;
-  const totalRevenue = bookings?.items?.reduce((s: number, b: any) => s + (b.commissionAmount ?? 0), 0) ?? 0;
-  const pendingPayouts = payouts?.items?.filter((p: any) => p.status === 'pending').length ?? 0;
-  const totalPaidOut = payouts?.items?.filter((p: any) => p.status === 'succeeded').reduce((s: number, p: any) => s + p.amount, 0) ?? 0;
+  const totalBookings = bookings?.meta?.total ?? 0;
+  const totalRevenue = bookings?.bookings?.reduce((s: number, b: any) => s + (b.commissionAmount ?? 0), 0) ?? 0;
+  const pendingPayouts = payouts?.payouts?.filter((p: any) => p.status === 'pending').length ?? 0;
+  const totalPaidOut = payouts?.payouts?.filter((p: any) => p.status === 'succeeded').reduce((s: number, p: any) => s + p.amount, 0) ?? 0;
 
   return (
     <div>
@@ -53,7 +52,7 @@ export function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {(bookings?.items ?? []).slice(0, 10).map((b: any) => (
+              {(bookings?.bookings ?? []).slice(0, 10).map((b: any) => (
                 <tr key={b.id}>
                   <td style={{ fontWeight: 600 }}>{b.reference}</td>
                   <td>{b.customerId}</td>
@@ -62,7 +61,7 @@ export function AdminDashboard() {
                   <td><span className={`badge badge-${b.status === 'paid' || b.status === 'confirmed' ? 'success' : b.status === 'cancelled' ? 'danger' : 'warning'}`}>{b.status}</span></td>
                 </tr>
               ))}
-              {(bookings?.items ?? []).length === 0 && (
+              {(bookings?.bookings ?? []).length === 0 && (
                 <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-neutral-600)', padding: '2rem' }}>No bookings yet</td></tr>
               )}
             </tbody>

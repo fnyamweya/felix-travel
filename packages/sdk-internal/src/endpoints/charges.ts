@@ -1,6 +1,5 @@
 import type { FelixApiClient } from '../client.js';
 import type {
-  ChargeBreakdown,
   ChargeSimulationResponse,
 } from '@felix-travel/charges';
 

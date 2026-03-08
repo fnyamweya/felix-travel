@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
@@ -30,7 +30,7 @@ export function ListingDetailPage() {
   if (isLoading) return <div className="page">Loading…</div>;
   if (!listing) return <div className="page">Listing not found.</div>;
 
-  const price = listing.basePrice ?? 0;
+  const price = listing.basePrice.amount;
   const total = price * guests;
 
   return (

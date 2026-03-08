@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client.js';
 
@@ -7,7 +7,7 @@ export function AdminAuditLog() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['audit-log', action],
-    queryFn: () => apiClient.admin.getAuditLog({ action: action || undefined, limit: 50 }),
+    queryFn: () => apiClient.admin.getAuditLog(action ? { entityType: action } : {}),
   });
 
   return (
@@ -37,7 +37,7 @@ export function AdminAuditLog() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.items ?? []).map((e: any) => (
+                {(data?.logs ?? []).map((e: any) => (
                   <tr key={e.id}>
                     <td style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{new Date(e.createdAt).toISOString().replace('T', ' ').slice(0, 19)}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{e.actorId?.slice(-8)}</td>

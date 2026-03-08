@@ -1,4 +1,3 @@
-import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
@@ -21,8 +20,6 @@ export function BookingDetailPage() {
   if (isLoading) return <div className="page">Loading…</div>;
   if (!booking) return <div className="page">Booking not found.</div>;
 
-  const canPay = booking.status === 'pending_payment' || booking.status === 'quoted';
-
   return (
     <div className="page-narrow">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
@@ -42,7 +39,7 @@ export function BookingDetailPage() {
 
       {/* Charge breakdown — show if charges data available */}
       {booking.chargeBreakdown?.customer && (
-        <ChargeBreakdown customer={booking.chargeBreakdown.customer} />
+        <ChargeBreakdown customer={booking.chargeBreakdown.customer as any} />
       )}
 
       {booking.status === 'pending_payment' || booking.status === 'quoted' ? (

@@ -41,6 +41,12 @@ export interface Booking {
   updatedAt: DateTimeString;
   items: BookingItem[];
   travelers: Traveler[];
+  /** Populated when charge breakdown is available (e.g. after pricing) */
+  chargeBreakdown?: {
+    customer: Record<string, unknown>;
+    provider: Record<string, unknown>;
+    platform: Record<string, unknown>;
+  } | null;
 }
 
 export interface BookingItem {
