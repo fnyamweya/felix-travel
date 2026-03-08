@@ -29,6 +29,8 @@ const baseEnv: Record<string, string> = {
   TINGG_CALLBACK_PAYOUT_URL: 'https://api.test.com/webhooks/tingg/payout',
   TINGG_SUCCESS_REDIRECT_URL: 'https://test.com/payment/success',
   TINGG_FAIL_REDIRECT_URL: 'https://test.com/payment/failed',
+  TINGG_ENGAGE_USERNAME: 'test_engage_user',
+  TINGG_ENGAGE_PASSWORD: 'test_engage_pass',
   R2_PUBLIC_BASE_URL: 'https://media.test.com',
 };
 
