@@ -94,9 +94,10 @@ describe('parseEnv', () => {
     expect(env.DEFAULT_SETTLEMENT_DELAY_DAYS).toBe(3);
   });
 
-  it('throws when required Tingg field is missing', () => {
+  it('uses default when optional Tingg field is missing', () => {
     const { TINGG_CLIENT_SECRET: _removed, ...withoutSecret } = baseEnv;
-    expect(() => parseEnv(withoutSecret)).toThrow('Invalid environment configuration');
+    const env = parseEnv(withoutSecret);
+    expect(env.TINGG_CLIENT_SECRET).toBe('NOT_CONFIGURED');
   });
 
   it('throws when DEFAULT_CURRENCY is not exactly 3 chars', () => {

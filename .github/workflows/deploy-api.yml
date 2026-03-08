@@ -129,12 +129,29 @@ jobs:
               echo "$value" | npx wrangler secret put "$name"
             fi
           }
-          set_secret JWT_PRIVATE_KEY "${{ secrets.JWT_PRIVATE_KEY }}"
-          set_secret JWT_PUBLIC_KEY "${{ secrets.JWT_PUBLIC_KEY }}"
-          set_secret INTERNAL_EVENT_SIGNING_SECRET "${{ secrets.INTERNAL_EVENT_SIGNING_SECRET }}"
-          set_secret CSRF_SECRET "${{ secrets.CSRF_SECRET }}"
-          set_secret ENCRYPTION_KEY "${{ secrets.ENCRYPTION_KEY }}"
-          set_secret MFA_ENCRYPTION_KEY "${{ secrets.MFA_ENCRYPTION_KEY }}"
+
+          # Generate RSA-2048 key pair if not provided
+          JWT_PRIV="${{ secrets.JWT_PRIVATE_KEY }}"
+          JWT_PUB="${{ secrets.JWT_PUBLIC_KEY }}"
+          if [ -z "$JWT_PRIV" ] || [ -z "$JWT_PUB" ]; then
+            echo "::notice ::Generating RSA-2048 key pair for JWT signing (set JWT_PRIVATE_KEY/JWT_PUBLIC_KEY secrets for production)"
+            openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -outform PEM -out /tmp/jwt_private.pem 2>/dev/null
+            openssl pkey -in /tmp/jwt_private.pem -pubout -outform PEM -out /tmp/jwt_public.pem 2>/dev/null
+            JWT_PRIV=$(base64 -w0 /tmp/jwt_private.pem)
+            JWT_PUB=$(base64 -w0 /tmp/jwt_public.pem)
+            rm -f /tmp/jwt_private.pem /tmp/jwt_public.pem
+          fi
+          set_secret JWT_PRIVATE_KEY "$JWT_PRIV"
+          set_secret JWT_PUBLIC_KEY "$JWT_PUB"
+
+          # Generate random secrets if not provided
+          gen_hex() { openssl rand -hex "$1"; }
+          set_secret INTERNAL_EVENT_SIGNING_SECRET "${INTERNAL_SIGNING:-$(gen_hex 32)}"
+          set_secret CSRF_SECRET "${CSRF:-$(gen_hex 32)}"
+          set_secret ENCRYPTION_KEY "${ENCRYPT:-$(gen_hex 32)}"
+          set_secret MFA_ENCRYPTION_KEY "${MFA_KEY:-$(gen_hex 32)}"
+
+          # Optional third-party secrets — only set if provided
           set_secret TINGG_CLIENT_ID "${{ secrets.TINGG_CLIENT_ID }}"
           set_secret TINGG_CLIENT_SECRET "${{ secrets.TINGG_CLIENT_SECRET }}"
           set_secret TINGG_ENGAGE_USERNAME "${{ secrets.TINGG_ENGAGE_USERNAME }}"
@@ -146,6 +163,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INTERNAL_SIGNING: ${{ secrets.INTERNAL_EVENT_SIGNING_SECRET }}
+          CSRF: ${{ secrets.CSRF_SECRET }}
+          ENCRYPT: ${{ secrets.ENCRYPTION_KEY }}
+          MFA_KEY: ${{ secrets.MFA_ENCRYPTION_KEY }}
 
       - name: Deploy Worker
         run: |

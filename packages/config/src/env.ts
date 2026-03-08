@@ -96,9 +96,9 @@ const tinggSchema = z.object({
   TINGG_ENVIRONMENT: z.enum(['sandbox', 'production']),
   TINGG_BASE_URL: z.string().url(),
   /** OAuth2 client id issued by Tingg — treat as a secret */
-  TINGG_CLIENT_ID: z.string().min(1),
+  TINGG_CLIENT_ID: z.string().min(1).default('NOT_CONFIGURED'),
   /** OAuth2 client secret — MUST be a secret binding, never exposed to browser */
-  TINGG_CLIENT_SECRET: z.string().min(1),
+  TINGG_CLIENT_SECRET: z.string().min(1).default('NOT_CONFIGURED'),
   TINGG_SERVICE_CODE: z.string().min(1),
   TINGG_PAYOUT_SERVICE_CODE: z.string().min(1),
   TINGG_COLLECTION_COUNTRY_CODE: z.string().length(2),
@@ -217,9 +217,9 @@ const tinggEngageSchema = z.object({
   /** Base URL for Tingg Engage API v2 */
   TINGG_ENGAGE_BASE_URL: z.string().url().default('https://api.tingg.africa/v2/engage'),
   /** HTTP Basic auth username for Engage */
-  TINGG_ENGAGE_USERNAME: z.string().min(1),
+  TINGG_ENGAGE_USERNAME: z.string().min(1).default('NOT_CONFIGURED'),
   /** HTTP Basic auth password for Engage — MUST be a secret */
-  TINGG_ENGAGE_PASSWORD: z.string().min(1),
+  TINGG_ENGAGE_PASSWORD: z.string().min(1).default('NOT_CONFIGURED'),
   /** Sender ID shown in SMS messages */
   TINGG_ENGAGE_SENDER_ID: z.string().min(1).default('FELIX'),
 });

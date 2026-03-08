@@ -7,9 +7,9 @@ routes = [
 ]
 
 [vars]
-APP_ENV = "development"
+APP_ENV = "production"
 APP_NAME = "Felix Travel"
-LOG_LEVEL = "debug"
+LOG_LEVEL = "info"
 DEFAULT_CURRENCY = "KES"
 DEFAULT_TIMEZONE = "Africa/Nairobi"
 PLATFORM_COUNTRY_CODE = "KE"
@@ -17,6 +17,27 @@ APP_BASE_URL = "https://travel-apis.felix.co.ke"
 API_BASE_URL = "https://travel-apis.felix.co.ke"
 CUSTOMER_APP_URL = "https://travel.felix.co.ke"
 DASHBOARD_APP_URL = "https://travel-dash.felix.co.ke"
+# Auth
+JWT_ISSUER = "https://travel-apis.felix.co.ke"
+JWT_AUDIENCE = "felix-travel"
+SESSION_COOKIE_DOMAIN = "felix.co.ke"
+SESSION_COOKIE_SECURE = "true"
+# Email (disabled until provider configured)
+EMAIL_PROVIDER = "disabled"
+EMAIL_FROM = "noreply@felix.co.ke"
+# Tingg payment gateway
+TINGG_ENVIRONMENT = "sandbox"
+TINGG_BASE_URL = "https://online.tingg.africa/v4"
+TINGG_SERVICE_CODE = "FELIXTRAVEL"
+TINGG_PAYOUT_SERVICE_CODE = "FELIXPAYOUT"
+TINGG_COLLECTION_COUNTRY_CODE = "KE"
+TINGG_COLLECTION_CURRENCY_CODE = "KES"
+TINGG_CALLBACK_CHECKOUT_URL = "https://travel-apis.felix.co.ke/api/v1/webhooks/tingg/checkout"
+TINGG_CALLBACK_PAYOUT_URL = "https://travel-apis.felix.co.ke/api/v1/webhooks/tingg/payout"
+TINGG_SUCCESS_REDIRECT_URL = "https://travel.felix.co.ke/payment/success"
+TINGG_FAIL_REDIRECT_URL = "https://travel.felix.co.ke/payment/failed"
+# Storage
+R2_PUBLIC_BASE_URL = "https://media.felix.co.ke"
 
 [[d1_databases]]
 binding = "DB"
