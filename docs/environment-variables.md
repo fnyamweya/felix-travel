@@ -357,3 +357,103 @@ If you only need to deploy the API worker (no Pages, no D1 migrations in CI):
 | **Account → Workers KV Storage** | Edit |
 | **Account → Workers R2 Storage** | Edit |
 | **Account → Workers Queues** | Edit |
+
+---
+
+## Automated Setup
+
+### Option A: GitHub Actions Workflows (recommended)
+
+The repository includes workflows that automate infrastructure provisioning and secret/variable management entirely within CI.
+
+#### One-time infrastructure setup
+
+Run the **Setup Infrastructure** workflow manually from GitHub → Actions → Setup Infrastructure → Run workflow:
+
+- Creates all Cloudflare resources (D1 database, 8 KV namespaces, R2 bucket, 6 queues, 2 Pages projects)
+- Sets worker **secrets** from GitHub Actions secrets
+- Sets worker **variables** from GitHub Actions variables
+
+**Prerequisites — set these in GitHub → Settings → Secrets and variables → Actions:**
+
+| Type | Name | Description |
+|---|---|---|
+| Secret | `CLOUDFLARE_API_TOKEN` | API token with Workers + Pages permissions |
+| Secret | `CLOUDFLARE_ACCOUNT_ID` | CF account ID |
+| Secret | `JWT_PRIVATE_KEY` | Base64-encoded RSA-2048 private key |
+| Secret | `JWT_PUBLIC_KEY` | Base64-encoded RSA-2048 public key |
+| Secret | `INTERNAL_EVENT_SIGNING_SECRET` | Queue message signing secret |
+| Secret | `CSRF_SECRET` | CSRF protection secret |
+| Secret | `ENCRYPTION_KEY` | AES-256 encryption key |
+| Secret | `MFA_ENCRYPTION_KEY` | MFA encryption key |
+| Secret | `TINGG_CLIENT_ID` | Tingg API client ID |
+| Secret | `TINGG_CLIENT_SECRET` | Tingg API client secret |
+| Secret | `TINGG_ENGAGE_USERNAME` | Tingg Engage SMS username |
+| Secret | `TINGG_ENGAGE_PASSWORD` | Tingg Engage SMS password |
+| Secret | `RESEND_API_KEY` | Resend email API key |
+| Secret | `AT_API_KEY` | Africa's Talking API key |
+| Secret | `AT_USERNAME` | Africa's Talking username |
+| Secret | `SENTRY_DSN` | Sentry DSN for error tracking |
+| Variable | `APP_ENV` | `production` / `staging` |
+| Variable | `APP_NAME` | e.g. `Felix Travel` |
+| Variable | `APP_BASE_URL` | e.g. `https://api.felix.travel` |
+| Variable | `CUSTOMER_APP_URL` | e.g. `https://felix.travel` |
+| Variable | `DASHBOARD_APP_URL` | e.g. `https://dashboard.felix.travel` |
+| Variable | `API_BASE_URL` | e.g. `https://api.felix.travel` |
+| Variable | `JWT_ISSUER` | JWT issuer URL |
+| Variable | `JWT_AUDIENCE` | JWT audience string |
+
+#### On every deploy
+
+The **Deploy API** workflow (`.github/workflows/deploy-api.yml`) runs automatically on push to `main` and:
+
+1. Applies D1 migrations
+2. Syncs all worker secrets from GitHub Actions secrets
+3. Deploys the worker with `wrangler deploy`
+
+This ensures worker secrets stay in sync with GitHub — update a GH secret and the next deploy propagates it automatically.
+
+### Option B: Local scripts
+
+Two scripts automate provisioning from a local machine. They are idempotent — safe to re-run.
+
+#### 1. Cloudflare Infrastructure + Secrets
+
+Creates all Cloudflare resources, patches `wrangler.toml` with real resource IDs, and sets worker secrets:
+
+```bash
+cp .env.example .env.local   # then fill in real values
+export ENV_FILE=.env.local
+
+bash scripts/cf-setup.sh
+# or for a specific wrangler environment:
+bash scripts/cf-setup.sh --env production
+# preview without changes:
+bash scripts/cf-setup.sh --dry-run
+```
+
+The script will prompt for `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` if they are not already in the environment.
+
+#### 2. GitHub Actions Secrets
+
+Sets all CI/CD secrets in the GitHub repository via the `gh` CLI:
+
+```bash
+bash scripts/gh-secrets-setup.sh
+```
+
+The script prompts for Cloudflare credentials interactively (API token is hidden), resolves the D1 database ID automatically, then sets all five GitHub Actions secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CF_D1_DATABASE_ID`
+- `CF_PAGES_PROJECT_WEB_CUSTOMER`
+- `CF_PAGES_PROJECT_WEB_DASHBOARD`
+
+You can also pre-export the values to skip the prompts:
+
+```bash
+export CLOUDFLARE_API_TOKEN="..."
+export CLOUDFLARE_ACCOUNT_ID="..."
+bash scripts/gh-secrets-setup.sh
+```
