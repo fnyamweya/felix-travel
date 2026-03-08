@@ -80,6 +80,38 @@ jobs:
           ensure_kv TRUSTED_DEVICE_KV YOUR_TRUSTED_DEVICE_KV_ID
           ensure_kv RISK_CACHE_KV YOUR_RISK_CACHE_KV_ID
 
+          # --- Queues ---
+          QUEUES=(
+            felix-travel-outbound-webhooks
+            felix-travel-reconciliation
+            felix-travel-notifications
+            felix-travel-approval
+            felix-travel-payment
+            felix-travel-payout
+          )
+          EXISTING_QUEUES=$(curl -sf "$API/queues?per_page=100" -H "$AUTH" | jq -r '.result[].queue_name // empty' 2>/dev/null || echo "")
+          for Q in "${QUEUES[@]}"; do
+            if echo "$EXISTING_QUEUES" | grep -qx "$Q"; then
+              echo "Queue $Q already exists"
+            else
+              echo "Creating queue: $Q"
+              curl -sf -X POST "$API/queues" \
+                -H "$AUTH" -H "Content-Type: application/json" \
+                -d "{\"queue_name\":\"$Q\"}" > /dev/null
+            fi
+          done
+
+          # --- R2 Bucket ---
+          R2_EXISTS=$(curl -sf "$API/r2/buckets" -H "$AUTH" | jq -r '.result.buckets[]? | select(.name == "felix-travel-media") | .name' 2>/dev/null || echo "")
+          if [ -z "$R2_EXISTS" ]; then
+            echo "Creating R2 bucket: felix-travel-media"
+            curl -sf -X POST "$API/r2/buckets" \
+              -H "$AUTH" -H "Content-Type: application/json" \
+              -d '{"name":"felix-travel-media"}' > /dev/null
+          else
+            echo "R2 bucket felix-travel-media already exists"
+          fi
+
       - name: Apply D1 migrations
         run: |
           cd apps/api-edge
