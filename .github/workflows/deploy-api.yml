@@ -32,42 +32,53 @@ jobs:
         run: pnpm --filter @felix-travel/api-edge build
         continue-on-error: true
 
-      - name: Resolve D1 database ID
+      - name: Provision and resolve resource IDs
         run: |
           API="https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
-          DB_ID=$(curl -sf "$API/d1/database" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          AUTH="Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          # --- D1 Database ---
+          DB_ID=$(curl -sf "$API/d1/database" -H "$AUTH" \
             | jq -r '.result[] | select(.name == "felix-travel-db") | .uuid')
           if [ -z "$DB_ID" ] || [ "$DB_ID" = "null" ]; then
-            echo "::error::D1 database 'felix-travel-db' not found. Run the Setup Infrastructure workflow first."
-            exit 1
+            echo "D1 database not found — creating..."
+            DB_ID=$(curl -sf -X POST "$API/d1/database" \
+              -H "$AUTH" -H "Content-Type: application/json" \
+              -d '{"name":"felix-travel-db"}' \
+              | jq -r '.result.uuid')
           fi
-          echo "Resolved D1 database ID: $DB_ID"
+          echo "D1 database ID: $DB_ID"
           sed -i "s/YOUR_D1_DATABASE_ID/$DB_ID/" apps/api-edge/wrangler.toml
 
-      - name: Resolve KV namespace IDs
-        run: |
-          API="https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
-          KV_JSON=$(curl -sf "$API/storage/kv/namespaces?per_page=100" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}")
-          patch_kv() {
+          # --- KV Namespaces ---
+          KV_JSON=$(curl -sf "$API/storage/kv/namespaces?per_page=100" -H "$AUTH")
+
+          ensure_kv() {
             local binding="$1" placeholder="$2"
             local id=$(echo "$KV_JSON" | jq -r ".result[] | select(.title | test(\"$binding\")) | .id" | head -1)
+            if [ -z "$id" ] || [ "$id" = "null" ]; then
+              echo "KV $binding not found — creating..."
+              id=$(curl -sf -X POST "$API/storage/kv/namespaces" \
+                -H "$AUTH" -H "Content-Type: application/json" \
+                -d "{\"title\":\"felix-travel-api-$binding\"}" \
+                | jq -r '.result.id')
+            fi
             if [ -n "$id" ] && [ "$id" != "null" ]; then
-              echo "Resolved $binding → $id"
+              echo "KV $binding → $id"
               sed -i "s/$placeholder/$id/" apps/api-edge/wrangler.toml
             else
-              echo "::warning::KV namespace for $binding not found"
+              echo "::warning::Failed to resolve KV namespace for $binding"
             fi
           }
-          patch_kv CACHE_KV YOUR_CACHE_KV_ID
-          patch_kv IDEMPOTENCY_KV YOUR_IDEMPOTENCY_KV_ID
-          patch_kv TOKEN_CACHE_KV YOUR_TOKEN_CACHE_KV_ID
-          patch_kv REPLAY_PROTECTION_KV YOUR_REPLAY_PROTECTION_KV_ID
-          patch_kv RATE_LIMIT_KV YOUR_RATE_LIMIT_KV_ID
-          patch_kv POLICY_CACHE_KV YOUR_POLICY_CACHE_KV_ID
-          patch_kv TRUSTED_DEVICE_KV YOUR_TRUSTED_DEVICE_KV_ID
-          patch_kv RISK_CACHE_KV YOUR_RISK_CACHE_KV_ID
+
+          ensure_kv CACHE_KV YOUR_CACHE_KV_ID
+          ensure_kv IDEMPOTENCY_KV YOUR_IDEMPOTENCY_KV_ID
+          ensure_kv TOKEN_CACHE_KV YOUR_TOKEN_CACHE_KV_ID
+          ensure_kv REPLAY_PROTECTION_KV YOUR_REPLAY_PROTECTION_KV_ID
+          ensure_kv RATE_LIMIT_KV YOUR_RATE_LIMIT_KV_ID
+          ensure_kv POLICY_CACHE_KV YOUR_POLICY_CACHE_KV_ID
+          ensure_kv TRUSTED_DEVICE_KV YOUR_TRUSTED_DEVICE_KV_ID
+          ensure_kv RISK_CACHE_KV YOUR_RISK_CACHE_KV_ID
 
       - name: Apply D1 migrations
         run: |
