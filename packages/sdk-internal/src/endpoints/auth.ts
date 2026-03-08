@@ -1,13 +1,18 @@
 import type { FelixApiClient } from '../client.js';
 import type { TokenPair, AuthUser } from '@felix-travel/types';
 
+export interface AuthResult {
+  user: AuthUser;
+  tokens: TokenPair;
+}
+
 export function authEndpoints(client: FelixApiClient) {
   return {
     register: (body: { email: string; password: string; firstName: string; lastName: string; phone?: string }) =>
-      client.post<TokenPair>('/v1/auth/register', body),
+      client.post<AuthResult>('/v1/auth/register', body),
 
     login: (body: { email: string; password: string }) =>
-      client.post<TokenPair>('/v1/auth/login', body),
+      client.post<AuthResult>('/v1/auth/login', body),
 
     logout: () => client.post<void>('/v1/auth/logout'),
 
@@ -28,6 +33,6 @@ export function authEndpoints(client: FelixApiClient) {
       client.post<void>('/v1/auth/password-reset/confirm', body),
 
     acceptInvite: (body: { token: string; firstName: string; lastName: string; password: string }) =>
-      client.post<TokenPair>('/v1/auth/invites/accept', body),
+      client.post<AuthResult>('/v1/auth/invites/accept', body),
   };
 }

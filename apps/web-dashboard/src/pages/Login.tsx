@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context.js';
 
 export function LoginPage() {
@@ -47,6 +47,11 @@ export function LoginPage() {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <Link to="/forgot-password" style={{ color: '#0052cc', textDecoration: 'none', fontSize: '0.875rem' }}>
+              Forgot your password?
+            </Link>
+          </div>
         </div>
       </div>
     </div>

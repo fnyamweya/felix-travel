@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context.js';
 import { DashboardLayout } from './components/DashboardLayout.js';
 import { LoginPage } from './pages/Login.js';
+import { ForgotPasswordPage } from './pages/ForgotPassword.js';
+import { ResetPasswordPage } from './pages/ResetPassword.js';
 
 // Admin pages
 import { AdminDashboard } from './pages/admin/Dashboard.js';
@@ -40,6 +42,8 @@ export function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route index element={<RoleRedirect />} />

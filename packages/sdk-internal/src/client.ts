@@ -52,7 +52,10 @@ export class FelixApiClient {
       params?: Record<string, string | number | boolean | undefined>;
     } = {}
   ): Promise<T> {
-    const url = new URL(`${this.config.baseUrl}${path}`);
+    const fullPath = `${this.config.baseUrl}${path}`;
+    const url = fullPath.startsWith('http')
+      ? new URL(fullPath)
+      : new URL(fullPath, globalThis.location?.origin ?? 'http://localhost');
     if (options.params) {
       for (const [k, v] of Object.entries(options.params)) {
         if (v !== undefined) url.searchParams.set(k, String(v));

@@ -25,6 +25,8 @@ import {
   magicLinkRequestSchema,
   refreshTokenSchema,
   inviteAcceptSchema,
+  passwordResetRequestSchema,
+  passwordResetConfirmSchema,
 } from '@felix-travel/validation';
 
 type HonoEnv = {
@@ -130,6 +132,36 @@ authRoutes.post(
   }
 );
 
+authRoutes.post(
+  '/password-reset/request',
+  rateLimit({ limit: 5, windowSeconds: 600 }),
+  async (c) => {
+    const body = await c.req.json();
+    const parsed = passwordResetRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError('Invalid input', { issues: parsed.error.flatten().fieldErrors });
+    }
+    const svc = getAuthService(c);
+    await svc.requestPasswordReset(parsed.data.email);
+    return c.json(success({ message: 'If the email is registered, a reset link has been sent' }));
+  }
+);
+
+authRoutes.post(
+  '/password-reset/confirm',
+  rateLimit({ limit: 10, windowSeconds: 600 }),
+  async (c) => {
+    const body = await c.req.json();
+    const parsed = passwordResetConfirmSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError('Invalid input', { issues: parsed.error.flatten().fieldErrors });
+    }
+    const svc = getAuthService(c);
+    await svc.confirmPasswordReset(parsed.data.token, parsed.data.password);
+    return c.json(success({ message: 'Password has been reset successfully' }));
+  }
+);
+
 // ─── Authenticated endpoints ─────────────────────────────────────
 
 authRoutes.post('/logout', requireAuth, async (c) => {
@@ -137,6 +169,13 @@ authRoutes.post('/logout', requireAuth, async (c) => {
   const svc = getAuthService(c);
   await svc.logout(session.sessionId);
   return c.json(success({ message: 'Logged out' }));
+});
+
+authRoutes.get('/me', requireAuth, async (c) => {
+  const session = c.get('session');
+  const svc = getAuthService(c);
+  const user = await svc.getMe(session.userId);
+  return c.json(success(user));
 });
 
 // ─── MFA — TOTP ─────────────────────────────────────────────────

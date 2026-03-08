@@ -6,7 +6,7 @@ interface AuthState {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -25,12 +25,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await apiClient.auth.login({ email, password });
-    setTokens(result.accessToken, result.refreshToken);
-    const me = await apiClient.auth.me();
-    setUser(me);
+    setTokens(result.tokens.accessToken, result.tokens.refreshToken);
+    setUser(result.user);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try { await apiClient.auth.logout(); } catch { /* ignore */ }
     clearTokens();
     setUser(null);
   }, []);

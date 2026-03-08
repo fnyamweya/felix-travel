@@ -17,7 +17,7 @@ export function RegisterPage() {
     setLoading(true);
     try {
       const result = await apiClient.auth.register(form);
-      setTokens(result.accessToken, result.refreshToken);
+      setTokens(result.tokens.accessToken, result.tokens.refreshToken);
       navigate('/bookings');
     } catch (err: any) {
       setError(err?.message ?? 'Registration failed. Please try again.');

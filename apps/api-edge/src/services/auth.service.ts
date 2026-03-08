@@ -24,13 +24,17 @@ import { createDbClient } from '@felix-travel/db';
 import { AppError } from '../lib/errors.js';
 import { newId } from '../lib/id.js';
 import { parseEnv } from '@felix-travel/config';
+import { verificationChallenges, profiles } from '@felix-travel/db';
+import { eq, and, isNull } from 'drizzle-orm';
 
 export class AuthService {
   private readonly repo: UsersRepository;
   private readonly env: ReturnType<typeof parseEnv>;
+  private readonly db: ReturnType<typeof createDbClient>;
 
   constructor(db: D1Database, env: Env) {
-    this.repo = new UsersRepository(createDbClient(db));
+    this.db = createDbClient(db);
+    this.repo = new UsersRepository(this.db);
     this.env = parseEnv(env as unknown as Record<string, string>);
   }
 
@@ -181,6 +185,61 @@ export class AuthService {
 
     const tokens = await this.issueTokenPair(user.id, user.role, invite.providerId ?? null);
     return { user: this.toAuthUser(user), tokens };
+  }
+
+  async getMe(userId: string): Promise<AuthUser> {
+    const user = await this.repo.findById(userId);
+    if (!user || !user.isActive) {
+      throw new AppError('USER_NOT_FOUND', 'User not found or disabled', 404);
+    }
+    const profile = await this.db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+    });
+    return this.toAuthUser({ ...user, firstName: profile?.firstName ?? '', lastName: profile?.lastName ?? '' });
+  }
+
+  async requestPasswordReset(email: string): Promise<void> {
+    // Always succeed to prevent email enumeration
+    const user = await this.repo.findByEmail(email);
+    if (!user) return;
+    const token = generateToken(32);
+    const secretHash = await hashToken(token);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes
+    await this.db.insert(verificationChallenges).values({
+      id: newId(),
+      userId: user.id,
+      purpose: 'password_reset',
+      secretHash,
+      expiresAt,
+    });
+    // TODO: queue email via NOTIFICATION_QUEUE with the reset link containing `token`
+    // For now the token is only available server-side
+  }
+
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    const secretHash = await hashToken(token);
+    const challenge = await this.db.query.verificationChallenges.findFirst({
+      where: and(
+        eq(verificationChallenges.secretHash, secretHash),
+        eq(verificationChallenges.purpose, 'password_reset'),
+        isNull(verificationChallenges.usedAt),
+      ),
+    });
+    if (!challenge) {
+      throw new AppError('INVALID_TOKEN', 'Reset token is invalid or has already been used', 400);
+    }
+    if (new Date(challenge.expiresAt) < new Date()) {
+      throw new AppError('TOKEN_EXPIRED', 'Reset token has expired', 400);
+    }
+    const passwordHash = await hashPassword(newPassword);
+    await this.repo.update(challenge.userId, { passwordHash });
+    // Mark challenge as used
+    await this.db
+      .update(verificationChallenges)
+      .set({ usedAt: new Date().toISOString() })
+      .where(eq(verificationChallenges.id, challenge.id));
+    // Revoke all sessions so user must re-login with new password
+    await this.repo.revokeAllUserSessions(challenge.userId);
   }
 
   private async issueTokenPair(
