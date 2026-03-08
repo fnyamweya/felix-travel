@@ -33,7 +33,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CF_PAGES_PROJECT_WEB_CUSTOMER }}
+          projectName: felix-travel-web-customer
           directory: apps/web-customer/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
@@ -64,6 +64,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CF_PAGES_PROJECT_WEB_DASHBOARD }}
+          projectName: felix-travel-web-dashboard
           directory: apps/web-dashboard/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
