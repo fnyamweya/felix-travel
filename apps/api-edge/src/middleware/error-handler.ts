@@ -22,5 +22,8 @@ export function errorHandler(err: Error, c: Context) {
 
     // Unexpected errors — log and return generic 500
     console.error('Unhandled error:', err);
-    return c.json(error('INTERNAL_ERROR', 'An unexpected error occurred'), 500);
+    return c.json(error('INTERNAL_ERROR', 'An unexpected error occurred', {
+        name: err.name,
+        message: err.message,
+    }), 500);
 }
