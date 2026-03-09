@@ -77,7 +77,7 @@ export class AuthService {
   async login(email: string, password: string): Promise<{ user: AuthUser; tokens: TokenPair }> {
     const user = await this.repo.findByEmail(email);
     // Always hash even if user not found to prevent timing-based email enumeration
-    const dummyHash = 'pbkdf2:210000:00000000000000000000000000000000:00000000000000000000000000000000';
+    const dummyHash = 'pbkdf2:100000:00000000000000000000000000000000:00000000000000000000000000000000';
     const valid = user
       ? await verifyPassword(password, user.passwordHash ?? dummyHash)
       : await verifyPassword(password, dummyHash).then(() => false);

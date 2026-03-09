@@ -1,14 +1,14 @@
 /**
  * Password hashing using PBKDF2 via Web Crypto API (Workers-compatible).
- * bcrypt is not available on Workers — PBKDF2 with SHA-256 and 210,000 iterations
- * meets NIST SP 800-132 recommendations and exceeds OWASP minimums.
+ * bcrypt is not available on Workers — PBKDF2 with SHA-256 and 100,000 iterations
+ * meets OWASP minimums. Cloudflare Workers caps PBKDF2 at 100,000 iterations.
  *
  * Hash format: "pbkdf2:iterations:salt_hex:hash_hex"
  */
 
 const encoder = new TextEncoder();
 
-export async function hashPassword(password: string, iterations = 210000): Promise<string> {
+export async function hashPassword(password: string, iterations = 100000): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(32));
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
