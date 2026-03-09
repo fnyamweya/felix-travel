@@ -2,10 +2,10 @@
 -- Seed login credentials (dev only):
 -- Password for all seeded users: DevPass123!
 INSERT OR IGNORE INTO users (id, email, email_verified, role, is_active, password_hash, created_at, updated_at) VALUES
-  ('usr_admin_001','admin@felix.travel',1,'admin',1,'pbkdf2:210000:1111111111111111111111111111111122222222222222222222222222222222:e291dd7e0186b9b318a704fd02895bd2c0eca3b1b565321392e90c2443c4f552',datetime('now'),datetime('now')),
-  ('usr_agent_001','agent@felix.travel',1,'agent',1,'pbkdf2:210000:1111111111111111111111111111111122222222222222222222222222222222:e291dd7e0186b9b318a704fd02895bd2c0eca3b1b565321392e90c2443c4f552',datetime('now'),datetime('now')),
-  ('usr_customer_001','customer@felix.travel',1,'customer',1,'pbkdf2:210000:1111111111111111111111111111111122222222222222222222222222222222:e291dd7e0186b9b318a704fd02895bd2c0eca3b1b565321392e90c2443c4f552',datetime('now'),datetime('now')),
-  ('usr_provider_001','provider@safarico.com',1,'service_provider',1,'pbkdf2:210000:1111111111111111111111111111111122222222222222222222222222222222:e291dd7e0186b9b318a704fd02895bd2c0eca3b1b565321392e90c2443c4f552',datetime('now'),datetime('now'));
+  ('usr_admin_001','admin@felix.travel',1,'admin',1,'pbkdf2:100000:6928fa4b71fea9341418b80b572dce49bfebcaf58e6122e1b487f744c1bc7321:6a445b4b8488d4d69578a03845a25748e73f45b1f9532f92ba3c61439efd80b4',datetime('now'),datetime('now')),
+  ('usr_agent_001','agent@felix.travel',1,'agent',1,'pbkdf2:100000:6928fa4b71fea9341418b80b572dce49bfebcaf58e6122e1b487f744c1bc7321:6a445b4b8488d4d69578a03845a25748e73f45b1f9532f92ba3c61439efd80b4',datetime('now'),datetime('now')),
+  ('usr_customer_001','customer@felix.travel',1,'customer',1,'pbkdf2:100000:6928fa4b71fea9341418b80b572dce49bfebcaf58e6122e1b487f744c1bc7321:6a445b4b8488d4d69578a03845a25748e73f45b1f9532f92ba3c61439efd80b4',datetime('now'),datetime('now')),
+  ('usr_provider_001','provider@safarico.com',1,'service_provider',1,'pbkdf2:100000:6928fa4b71fea9341418b80b572dce49bfebcaf58e6122e1b487f744c1bc7321:6a445b4b8488d4d69578a03845a25748e73f45b1f9532f92ba3c61439efd80b4',datetime('now'),datetime('now'));
 
 INSERT OR IGNORE INTO profiles (user_id, first_name, last_name, created_at, updated_at) VALUES
   ('usr_admin_001','Felix','Admin',datetime('now'),datetime('now')),

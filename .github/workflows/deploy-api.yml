@@ -151,6 +151,9 @@ jobs:
           set_secret ENCRYPTION_KEY "${ENCRYPT:-$(gen_hex 32)}"
           set_secret MFA_ENCRYPTION_KEY "${MFA_KEY:-$(gen_hex 32)}"
 
+          # Admin bootstrap secret — auto-generated for first-time setup
+          set_secret ADMIN_BOOTSTRAP_SECRET "${ADMIN_BOOTSTRAP:-$(gen_hex 32)}"
+
           # Optional third-party secrets — only set if provided
           set_secret TINGG_CLIENT_ID "${{ secrets.TINGG_CLIENT_ID }}"
           set_secret TINGG_CLIENT_SECRET "${{ secrets.TINGG_CLIENT_SECRET }}"
@@ -167,6 +170,7 @@ jobs:
           CSRF: ${{ secrets.CSRF_SECRET }}
           ENCRYPT: ${{ secrets.ENCRYPTION_KEY }}
           MFA_KEY: ${{ secrets.MFA_ENCRYPTION_KEY }}
+          ADMIN_BOOTSTRAP: ${{ secrets.ADMIN_BOOTSTRAP_SECRET }}
 
       - name: Deploy Worker
         run: |

@@ -132,6 +132,12 @@ export interface WorkerEnv {
   TINGG_ENGAGE_SENDER_ID: string;
 
   // ----------------------------------------------------------------
+  // Admin bootstrap
+  // ----------------------------------------------------------------
+  /** One-time secret for setting the initial admin password */
+  ADMIN_BOOTSTRAP_SECRET?: string;
+
+  // ----------------------------------------------------------------
   // Observability
   // ----------------------------------------------------------------
   SENTRY_DSN?: string;
