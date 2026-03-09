@@ -17,6 +17,7 @@
  */
 import {
   BookingsRepository,
+  CatalogRepository,
   createDbClient,
 } from '@felix-travel/db';
 import { ChargesRepository, ChargeService } from '@felix-travel/charges';
@@ -25,18 +26,17 @@ import type { SessionContext } from '@felix-travel/types';
 import { AppError, NotFoundError, ForbiddenError } from '../lib/errors.js';
 import { newId, generateBookingReference } from '../lib/id.js';
 import { assertProviderOwnership } from '@felix-travel/auth';
-import { parseEnv } from '@felix-travel/config';
 
 export class BookingService {
   private readonly bookingsRepo: BookingsRepository;
+  private readonly catalogRepo: CatalogRepository;
   private readonly chargeService: ChargeService;
-  private readonly env: ReturnType<typeof parseEnv>;
 
-  constructor(db: D1Database, env: Env) {
+  constructor(db: D1Database, _env: Env) {
     const client = createDbClient(db);
     this.bookingsRepo = new BookingsRepository(client);
+    this.catalogRepo = new CatalogRepository(client);
     this.chargeService = new ChargeService(new ChargesRepository(client), client);
-    this.env = parseEnv(env as unknown as Record<string, string>);
   }
 
   async createDraft(
@@ -49,9 +49,12 @@ export class BookingService {
     },
     session: SessionContext
   ) {
-    // Fetch listing to get provider, pricing, and commission rate
-    // Get provider and commission settings
-    // For now we create the draft with the data we have — full pricing is computed separately
+    const listing = await this.catalogRepo.findListingById(input.listingId);
+    if (!listing) throw new NotFoundError('Listing', input.listingId);
+
+    const subtotalAmount = listing.basePriceAmount * input.guestCount;
+    const totalAmount = subtotalAmount; // charges applied on confirm
+
     const bookingId = newId();
     const reference = generateBookingReference(Math.floor(Math.random() * 99999));
 
@@ -60,16 +63,16 @@ export class BookingService {
       reference,
       customerId: session.userId,
       agentId: session.role === 'agent' ? session.userId : null,
-      providerId: 'prv_001', // resolved from listing in full impl
+      providerId: listing.providerId,
       listingId: input.listingId,
       status: 'draft',
       serviceDate: input.serviceDate,
       guestCount: input.guestCount,
-      subtotalAmount: 0, // computed on confirm
+      subtotalAmount,
       commissionAmount: 0,
       taxAmount: 0,
-      totalAmount: 0,
-      currencyCode: this.env.DEFAULT_CURRENCY,
+      totalAmount,
+      currencyCode: listing.currencyCode,
       specialRequests: input.specialRequests ?? null,
     });
 

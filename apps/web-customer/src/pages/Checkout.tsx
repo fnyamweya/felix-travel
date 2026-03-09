@@ -1,7 +1,8 @@
-import { type FormEvent, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { type FormEvent, useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client.js';
+import { useAuth } from '../lib/auth-context.js';
 
 function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat('en-KE', { style: 'currency', currency }).format(amount / 100);
@@ -9,14 +10,50 @@ function formatMoney(amount: number, currency: string) {
 
 export function CheckoutPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
+  const creatingRef = useRef(false);
+
+  const isNew = bookingId === 'new';
+
+  // When bookingId is 'new', create a draft booking from query params then redirect
+  useEffect(() => {
+    if (!isNew || creatingRef.current || !user) return;
+    creatingRef.current = true;
+
+    const listingId = searchParams.get('listingId');
+    const date = searchParams.get('date');
+    const guests = Number(searchParams.get('guests')) || 1;
+
+    if (!listingId || !date) {
+      setError('Missing listing or date information.');
+      return;
+    }
+
+    (async () => {
+      try {
+        const draft = await apiClient.bookings.createDraft({
+          listingId,
+          serviceDate: date,
+          guestCount: guests,
+          travelers: [{ firstName: user.firstName, lastName: user.lastName, isPrimary: true }],
+        });
+        const confirmed = await apiClient.bookings.confirm(draft.id, crypto.randomUUID());
+        navigate(`/checkout/${confirmed.id}`, { replace: true });
+      } catch (err: any) {
+        setError(err?.message ?? 'Failed to create booking. Please try again.');
+        creatingRef.current = false;
+      }
+    })();
+  }, [isNew, user, searchParams, navigate]);
 
   const { data: booking } = useQuery({
     queryKey: ['booking', bookingId],
     queryFn: () => apiClient.bookings.get(bookingId!),
-    enabled: !!bookingId && bookingId !== 'new',
+    enabled: !!bookingId && !isNew,
   });
 
   const checkoutMutation = useMutation({
@@ -45,7 +82,11 @@ export function CheckoutPage() {
     });
   };
 
-  if (!booking) return <div className="page">Loading checkout…</div>;
+  if (!booking) return (
+    <div className="page">
+      {error ? <div className="alert-error">{error}</div> : 'Loading checkout…'}
+    </div>
+  );
 
   return (
     <div className="page-narrow">
