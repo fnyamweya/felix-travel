@@ -38,8 +38,6 @@ TINGG_SUCCESS_REDIRECT_URL = "https://travel.felix.co.ke/payment/success"
 TINGG_FAIL_REDIRECT_URL = "https://travel.felix.co.ke/payment/failed"
 # Storage
 R2_PUBLIC_BASE_URL = "https://media.felix.co.ke"
-# Admin bootstrap (one-time use, remove after first admin login)
-ADMIN_BOOTSTRAP_SECRET = "a765ae5e4dcf29690242db917ef97b5ccfad2c42c8ec4aadff879ac1b9d2d15f"
 
 [[d1_databases]]
 binding = "DB"
