@@ -45,7 +45,7 @@ catalogRoutes.get('/listings', async (c) => {
     if (pageSize) params.pageSize = Number(pageSize);
 
     const result = await svc.searchListings(params);
-    return c.json(success(result.listings, result.meta));
+    return c.json(success(result));
 });
 
 catalogRoutes.get('/listings/:id', async (c) => {

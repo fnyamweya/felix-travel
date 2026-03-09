@@ -69,7 +69,7 @@ bookingRoutes.get('/', async (c) => {
     const pageSize = query.success ? query.data.pageSize : 20;
     const svc = getBookingService(c);
     const bookings = await svc.listMyBookings(session, page, pageSize);
-    return c.json(success(bookings));
+    return c.json(success({ bookings }));
 });
 
 bookingRoutes.get('/:id', async (c) => {

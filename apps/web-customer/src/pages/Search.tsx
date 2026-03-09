@@ -30,7 +30,7 @@ export function SearchPage() {
 
       {isLoading && <div>Searching…</div>}
 
-      {data && data.listings.length === 0 && (
+      {data && (data.listings?.length ?? 0) === 0 && (
         <div style={{ textAlign: 'center', padding: '4rem 0', color: '#5e6c84' }}>
           No tours found. Try a different search.
         </div>
