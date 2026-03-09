@@ -39,7 +39,7 @@ export function CheckoutPage() {
           listingId,
           serviceDate: date,
           guestCount: guests,
-          travelers: [{ firstName: user.firstName, lastName: user.lastName, isPrimary: true }],
+          travelers: [{ firstName: user.firstName || 'Guest', lastName: user.lastName || 'Traveler', isPrimary: true }],
         });
         const confirmed = await apiClient.bookings.confirm(draft.id, crypto.randomUUID());
         navigate(`/checkout/${confirmed.id}`, { replace: true });
