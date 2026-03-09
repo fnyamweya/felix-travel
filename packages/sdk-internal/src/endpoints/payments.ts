@@ -10,7 +10,7 @@ export function paymentEndpoints(client: FelixApiClient) {
       client.post<Payment>('/v1/payments/charge', body, idempotencyKey),
 
     getStatus: (paymentId: string) =>
-      client.get<Payment>(`/v1/payments/${paymentId}/status`),
+      client.get<Payment>(`/v1/payments/${paymentId}`),
 
     refund: (paymentId: string, body: { amount: number; reason: string; items?: unknown[] }, idempotencyKey: string) =>
       client.post<Refund>(`/v1/payments/${paymentId}/refund`, body, idempotencyKey),

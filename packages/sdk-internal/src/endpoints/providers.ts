@@ -5,7 +5,7 @@ import type { PaginationMeta } from '@felix-travel/types';
 export function providerEndpoints(client: FelixApiClient) {
   return {
     list: (params?: { page?: number; pageSize?: number }) =>
-      client.get<ServiceProvider[]>('/v1/providers', params),
+      client.get<ServiceProvider[]>('/v1/admin/providers', params),
 
     get: (id: string) => client.get<ServiceProvider>(`/v1/providers/${id}`),
 

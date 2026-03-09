@@ -11,7 +11,7 @@ export function payoutEndpoints(client: FelixApiClient) {
       client.get<Payout>(`/v1/payouts/${id}`),
 
     runPayout: (providerId: string, body: { idempotencyKey: string; periodEnd?: string }) =>
-      client.post<Payout>(`/v1/payouts/run`, { providerId, ...body }, body.idempotencyKey),
+      client.post<Payout>('/v1/payouts', { providerId, ...body }, body.idempotencyKey),
 
     approve: (id: string) =>
       client.post<Payout>(`/v1/admin/payouts/${id}/approve`),

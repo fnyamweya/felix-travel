@@ -59,6 +59,14 @@ payoutRoutes.post(
     }
 );
 
+payoutRoutes.get('/', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'payout:view:own');
+    const svc = getPayoutService(c);
+    const payouts = await svc.list({ actor: session });
+    return c.json(success(payouts));
+});
+
 payoutRoutes.get('/:payoutId', async (c) => {
     const session = c.get('session');
     authorize(session, 'payout:view:own');

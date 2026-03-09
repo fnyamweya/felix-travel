@@ -253,6 +253,18 @@ adminRoutes.post('/refunds/:refundId/reject', async (c) => {
     return c.json(success(result));
 });
 
+// ─── Providers (admin view) ───────────────────────────────────────
+
+adminRoutes.get('/providers', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const { page, pageSize } = parsePagination(c.req.query());
+    const { ProvidersRepository, createDbClient: createDb } = await import('@felix-travel/db');
+    const repo = new ProvidersRepository(createDb(c.env.DB));
+    const providers = await repo.findAll(pageSize, (page - 1) * pageSize);
+    return c.json(success(providers));
+});
+
 // ─── Audit log ────────────────────────────────────────────────────
 
 adminRoutes.get('/audit-logs', async (c) => {
