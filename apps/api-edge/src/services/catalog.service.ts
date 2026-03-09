@@ -110,9 +110,10 @@ export class CatalogService {
         createdAt: string;
         updatedAt: string;
     }): Promise<Listing> {
-        const [media, amenityNames] = await Promise.all([
+        const [media, amenityNames, destination] = await Promise.all([
             this.repo.findMediaForEntity('listing', row.id),
             this.repo.findAmenitiesForListing(row.id),
+            this.repo.findDestinationById(row.destinationId),
         ]);
 
         let tags: string[] = [];
@@ -134,7 +135,7 @@ export class CatalogService {
             shortDescription: row.shortDescription,
             description: row.description,
             coverImageUrl: row.coverImageUrl,
-            location: null,
+            location: destination?.name ?? null,
             mediaAssets: media.map((m) => ({
                 id: m.id,
                 entityType: m.entityType,

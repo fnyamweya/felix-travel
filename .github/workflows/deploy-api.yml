@@ -126,7 +126,7 @@ jobs:
           set_secret() {
             local name="$1"; local value="$2"
             if [ -n "$value" ]; then
-              echo "$value" | npx wrangler secret put "$name"
+              echo "$value" | npx wrangler secret put "$name" 2>&1 || echo "::warning ::secret $name already set (skipped)"
             fi
           }
 

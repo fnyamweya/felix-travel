@@ -23,6 +23,12 @@ export class CatalogRepository {
         });
     }
 
+    async findDestinationById(id: string) {
+        return this.db.query.destinations.findFirst({
+            where: eq(destinations.id, id),
+        });
+    }
+
     /* ── Listings ─────────────────────────────────────────── */
 
     async searchListings(opts: {
