@@ -24,7 +24,7 @@ import { createDbClient } from '@felix-travel/db';
 import { AppError } from '../lib/errors.js';
 import { newId } from '../lib/id.js';
 import { parseEnv } from '@felix-travel/config';
-import { verificationChallenges, profiles } from '@felix-travel/db';
+import { verificationChallenges, profiles, userRoles, roles } from '@felix-travel/db';
 import { eq, and, isNull } from 'drizzle-orm';
 
 export class AuthService {
@@ -66,6 +66,23 @@ export class AuthService {
       firstName: input.firstName,
       lastName: input.lastName,
     });
+
+    // Assign the 'customer' role in user_roles table for RBAC
+    const customerRole = await this.db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.slug, 'customer'))
+      .get();
+    if (customerRole) {
+      await this.db.insert(userRoles).values({
+        id: newId(),
+        userId,
+        roleId: customerRole.id,
+        providerId: null,
+        isActive: true,
+        grantedBy: 'system',
+      });
+    }
 
     const tokens = await this.issueTokenPair(user.id, user.role, null);
     return {
