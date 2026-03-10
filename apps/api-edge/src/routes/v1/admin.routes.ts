@@ -247,7 +247,7 @@ adminRoutes.post(
             throw new ValidationError('Invalid input', { issues: parsed.error.flatten().fieldErrors });
         }
         const svc = getAdminService(c);
-        const result = await svc.manualLedgerAdjustment(parsed.data, session);
+        const result = await svc.manualLedgerAdjustment(parsed.data, session, c.req.header('Idempotency-Key'));
         return c.json(success(result), 201);
     }
 );

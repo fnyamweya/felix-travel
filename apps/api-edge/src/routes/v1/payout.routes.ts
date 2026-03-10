@@ -20,7 +20,6 @@ import { success } from '../../lib/response.js';
 import { ValidationError } from '../../lib/errors.js';
 const requestPayoutSchema = z.object({
     providerId: z.string().min(1),
-    idempotencyKey: z.string().min(1).max(255),
 });
 
 type HonoEnv = {
@@ -56,7 +55,7 @@ payoutRoutes.post(
         }
         const svc = getPayoutService(c);
         const payout = await svc.runPayout(parsed.data.providerId, session, {
-            idempotencyKey: parsed.data.idempotencyKey,
+            idempotencyKey: c.req.header('Idempotency-Key') ?? crypto.randomUUID(),
             currency: 'KES',
         });
         return c.json(success(payout), 201);

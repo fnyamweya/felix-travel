@@ -30,9 +30,7 @@ export const updateBookingDraftSchema = z.object({
   })).optional(),
 });
 
-export const confirmBookingSchema = z.object({
-  idempotencyKey: z.string().min(1).max(255),
-});
+export const confirmBookingSchema = z.object({});
 
 export const pricingQuoteSchema = z.object({
   listingId: z.string().min(1),

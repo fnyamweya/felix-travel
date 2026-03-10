@@ -159,8 +159,9 @@ export class AdminService {
     // ── Ledger ────────────────────────────────────────────────────────────────
 
     async manualLedgerAdjustment(
-        data: { idempotencyKey: string;[key: string]: unknown },
+        data: { [key: string]: unknown },
         session: SessionContext,
+        idempotencyKey?: string,
     ) {
         await this.db.insert(auditLogs).values({
             id: crypto.randomUUID(),
@@ -168,7 +169,7 @@ export class AdminService {
             actorRole: session.role,
             action: 'admin.ledger_adjustment',
             entityType: 'ledger',
-            entityId: data.idempotencyKey,
+            entityId: idempotencyKey ?? crypto.randomUUID(),
             changes: JSON.stringify(data),
             ipAddress: null,
             userAgent: null,

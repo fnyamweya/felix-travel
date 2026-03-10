@@ -11,7 +11,6 @@ export const manualLedgerAdjustmentSchema = z.object({
     currencyCode: z.string().length(3),
     memo: z.string().max(200).optional(),
   })).min(2),
-  idempotencyKey: z.string().min(1),
 }).refine((data) => {
   const totalDebits = data.lines.reduce((s, l) => s + l.debitAmount, 0);
   const totalCredits = data.lines.reduce((s, l) => s + l.creditAmount, 0);

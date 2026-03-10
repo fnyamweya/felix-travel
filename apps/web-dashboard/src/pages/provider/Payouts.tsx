@@ -53,7 +53,7 @@ export function ProviderPayouts() {
   const requestPayoutMutation = useMutation({
     mutationFn: async () => {
       if (!providerId) throw new Error('No provider context available.');
-      return apiClient.payouts.runPayout(providerId, { idempotencyKey: crypto.randomUUID() });
+      return apiClient.payouts.runPayout(providerId, {}, crypto.randomUUID());
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['provider-payouts', providerId] });

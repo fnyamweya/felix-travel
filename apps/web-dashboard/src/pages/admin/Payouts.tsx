@@ -46,7 +46,7 @@ export function AdminPayouts() {
   });
 
   const runMutation = useMutation({
-    mutationFn: () => apiClient.payouts.runPayout(runProviderId, { idempotencyKey: crypto.randomUUID() }),
+    mutationFn: () => apiClient.payouts.runPayout(runProviderId, {}, crypto.randomUUID()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-payouts'] }); setRunProviderId(''); },
   });
 

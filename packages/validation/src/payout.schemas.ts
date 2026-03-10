@@ -18,7 +18,6 @@ export const runPayoutSchema = z.object({
   providerId: z.string().min(1),
   payoutAccountId: z.string().min(1),
   bookingIds: z.array(z.string().min(1)).min(1),
-  idempotencyKey: z.string().min(1).max(255),
 });
 
 export const approveBatchSchema = z.object({
