@@ -1,8 +1,11 @@
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, gte, lte } from 'drizzle-orm';
 import {
     users,
     bookings,
+    bookingItems,
+    bookingChargeOverrides,
+    bookingStatusHistory,
     payouts,
     refunds,
     auditLogs,
@@ -11,6 +14,8 @@ import {
     userRoles,
     permissions,
     rolePermissions,
+    ledgerEntries,
+    ledgerEntryLines,
 } from '@felix-travel/db/schema';
 import { ValidationError } from '../lib/errors.js';
 import { newId } from '../lib/id.js';
@@ -387,4 +392,224 @@ export class AdminService {
             userAgent: null,
         });
         return { revoked: true };
-    }}
+    }
+
+    // ── Booking Detail ────────────────────────────────────────────────────────
+
+    async getBookingDetail(bookingId: string) {
+        const [booking] = await this.db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.id, bookingId))
+            .limit(1);
+        if (!booking) return null;
+
+        const items = await this.db
+            .select()
+            .from(bookingItems)
+            .where(eq(bookingItems.bookingId, bookingId));
+
+        const history = await this.db
+            .select()
+            .from(bookingStatusHistory)
+            .where(eq(bookingStatusHistory.bookingId, bookingId))
+            .orderBy(bookingStatusHistory.createdAt);
+
+        const overrides = await this.db
+            .select()
+            .from(bookingChargeOverrides)
+            .where(eq(bookingChargeOverrides.bookingId, bookingId))
+            .orderBy(bookingChargeOverrides.createdAt);
+
+        return { booking, items, history, overrides };
+    }
+
+    // ── Booking Charge Overrides ──────────────────────────────────────────────
+
+    async listChargeOverrides(bookingId: string) {
+        return this.db
+            .select()
+            .from(bookingChargeOverrides)
+            .where(eq(bookingChargeOverrides.bookingId, bookingId))
+            .orderBy(bookingChargeOverrides.createdAt);
+    }
+
+    async createChargeOverride(
+        bookingId: string,
+        data: {
+            chargeDefinitionId: string;
+            bookingItemId?: string;
+            overrideAmount?: number;
+            overrideRateBps?: number;
+            isWaived?: boolean;
+            reason: string;
+        },
+        session: SessionContext,
+    ) {
+        const id = crypto.randomUUID();
+        const [row] = await this.db.insert(bookingChargeOverrides).values({
+            id,
+            bookingId,
+            bookingItemId: data.bookingItemId ?? null,
+            chargeDefinitionId: data.chargeDefinitionId,
+            overrideAmount: data.overrideAmount ?? null,
+            overrideRateBps: data.overrideRateBps ?? null,
+            isWaived: data.isWaived ?? false,
+            reason: data.reason,
+            createdBy: session.userId,
+            status: 'pending',
+        }).returning();
+
+        await this.db.insert(auditLogs).values({
+            id: crypto.randomUUID(),
+            actorId: session.userId,
+            actorRole: session.role,
+            action: 'admin.charge_override_created',
+            entityType: 'booking',
+            entityId: bookingId,
+            changes: JSON.stringify({ overrideId: id, ...data }),
+            ipAddress: null,
+            userAgent: null,
+        });
+
+        return row;
+    }
+
+    async approveChargeOverride(overrideId: string, session: SessionContext) {
+        const [updated] = await this.db
+            .update(bookingChargeOverrides)
+            .set({ status: 'approved', approvedBy: session.userId, updatedAt: new Date().toISOString() })
+            .where(eq(bookingChargeOverrides.id, overrideId))
+            .returning();
+
+        await this.db.insert(auditLogs).values({
+            id: crypto.randomUUID(),
+            actorId: session.userId,
+            actorRole: session.role,
+            action: 'admin.charge_override_approved',
+            entityType: 'booking_charge_override',
+            entityId: overrideId,
+            changes: null,
+            ipAddress: null,
+            userAgent: null,
+        });
+
+        return updated;
+    }
+
+    async rejectChargeOverride(overrideId: string, reason: string, session: SessionContext) {
+        const [updated] = await this.db
+            .update(bookingChargeOverrides)
+            .set({ status: 'rejected', updatedAt: new Date().toISOString() })
+            .where(eq(bookingChargeOverrides.id, overrideId))
+            .returning();
+
+        await this.db.insert(auditLogs).values({
+            id: crypto.randomUUID(),
+            actorId: session.userId,
+            actorRole: session.role,
+            action: 'admin.charge_override_rejected',
+            entityType: 'booking_charge_override',
+            entityId: overrideId,
+            changes: JSON.stringify({ reason }),
+            ipAddress: null,
+            userAgent: null,
+        });
+
+        return updated;
+    }
+
+    // ── Reconciliation ────────────────────────────────────────────────────────
+
+    async getReconciliationSummary(fromDate?: string, toDate?: string) {
+        const from = fromDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const to = toDate ?? new Date().toISOString().slice(0, 10);
+
+        // Total bookings in period
+        const bookingRows = await this.db
+            .select()
+            .from(bookings)
+            .where(and(
+                gte(bookings.createdAt, from),
+                lte(bookings.createdAt, to + 'T23:59:59'),
+            ));
+
+        const totalBookings = bookingRows.length;
+        const totalBookingValue = bookingRows.reduce((s, b) => s + b.totalAmount, 0);
+        const totalCommission = bookingRows.reduce((s, b) => s + b.commissionAmount, 0);
+
+        // Payouts in period
+        const payoutRows = await this.db
+            .select()
+            .from(payouts)
+            .where(and(
+                gte(payouts.createdAt, from),
+                lte(payouts.createdAt, to + 'T23:59:59'),
+            ));
+
+        const totalPayouts = payoutRows.length;
+        const totalPayoutValue = payoutRows.reduce((s, p) => s + p.amount, 0);
+        const succeededPayouts = payoutRows.filter(p => p.status === 'succeeded').length;
+        const failedPayouts = payoutRows.filter(p => p.status === 'failed').length;
+
+        // Refunds in period
+        const refundRows = await this.db
+            .select()
+            .from(refunds)
+            .where(and(
+                gte(refunds.createdAt, from),
+                lte(refunds.createdAt, to + 'T23:59:59'),
+            ));
+
+        const totalRefunds = refundRows.length;
+        const totalRefundValue = refundRows.reduce((s, r) => s + r.amount, 0);
+
+        // Ledger totals: sum debits and credits across all entries in period
+        const entryRows = await this.db
+            .select({
+                type: ledgerEntries.type,
+                debit: ledgerEntryLines.debitAmount,
+                credit: ledgerEntryLines.creditAmount,
+            })
+            .from(ledgerEntryLines)
+            .innerJoin(ledgerEntries, eq(ledgerEntries.id, ledgerEntryLines.entryId))
+            .where(and(
+                gte(ledgerEntries.createdAt, from),
+                lte(ledgerEntries.createdAt, to + 'T23:59:59'),
+            ));
+
+        const ledgerTotalDebits = entryRows.reduce((s, e) => s + (e.debit ?? 0), 0);
+        const ledgerTotalCredits = entryRows.reduce((s, e) => s + (e.credit ?? 0), 0);
+
+        // Booking statuses breakdown
+        const statusBreakdown: Record<string, number> = {};
+        for (const b of bookingRows) {
+            statusBreakdown[b.status] = (statusBreakdown[b.status] ?? 0) + 1;
+        }
+
+        return {
+            period: { from, to },
+            bookings: {
+                total: totalBookings,
+                totalValue: totalBookingValue,
+                totalCommission,
+                statusBreakdown,
+            },
+            payouts: {
+                total: totalPayouts,
+                totalValue: totalPayoutValue,
+                succeeded: succeededPayouts,
+                failed: failedPayouts,
+            },
+            refunds: {
+                total: totalRefunds,
+                totalValue: totalRefundValue,
+            },
+            ledger: {
+                totalDebits: ledgerTotalDebits,
+                totalCredits: ledgerTotalCredits,
+                imbalance: ledgerTotalDebits - ledgerTotalCredits,
+            },
+        };
+    }
+}

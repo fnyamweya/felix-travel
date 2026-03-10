@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { CalendarRange, CircleDollarSign, TicketCheck, TicketX } from 'lucide-react';
-import { BookingStatusBadge, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@felix-travel/ui';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CalendarRange, Check, CircleDollarSign, Clock, TicketCheck, XCircle } from 'lucide-react';
+import { BookingStatusBadge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@felix-travel/ui';
 import { useAuth } from '../../lib/auth-context.js';
 import { apiClient } from '../../lib/api-client.js';
-import { formatDate, formatMoney, titleizeToken } from '../../lib/admin-utils.js';
+import { formatDate, formatMoney, getErrorMessage, titleizeToken } from '../../lib/admin-utils.js';
 import {
   DataTable,
   DataTableEmpty,
@@ -12,6 +12,7 @@ import {
   EntityCell,
   InfoCard,
   InfoGrid,
+  Notice,
   PageHeader,
   PageShell,
   SectionCard,
@@ -32,11 +33,16 @@ type ProviderBooking = {
   status: string;
 };
 
+const ACTIONABLE_STATUSES = ['paid', 'provider_on_hold'];
+
 export function ProviderBookings() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const providerId = user?.providerId;
   const [status, setStatus] = useState('all');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [actionReason, setActionReason] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ['provider-bookings', providerId],
@@ -68,8 +74,33 @@ export function ProviderBookings() {
 
   const confirmed = bookings.filter((booking: any) => booking.status === 'confirmed').length;
   const paid = bookings.filter((booking: any) => booking.status === 'paid').length;
-  const cancelled = bookings.filter((booking: any) => booking.status === 'cancelled').length;
+  const onHold = bookings.filter((booking: any) => booking.status === 'provider_on_hold').length;
   const selectedBooking = bookings.find((booking) => booking.id === selectedBookingId) ?? null;
+  const canAct = selectedBooking && ACTIONABLE_STATUSES.includes(selectedBooking.status);
+
+  const invalidateBookings = () => {
+    queryClient.invalidateQueries({ queryKey: ['provider-bookings'] });
+    setActionError(null);
+    setActionReason('');
+  };
+
+  const acceptMutation = useMutation({
+    mutationFn: () => apiClient.providers.acceptBooking(providerId!, selectedBookingId!),
+    onSuccess: invalidateBookings,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  });
+
+  const holdMutation = useMutation({
+    mutationFn: () => apiClient.providers.holdBooking(providerId!, selectedBookingId!, actionReason),
+    onSuccess: invalidateBookings,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => apiClient.providers.rejectBooking(providerId!, selectedBookingId!, actionReason),
+    onSuccess: invalidateBookings,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  });
 
   return (
     <PageShell>
@@ -88,6 +119,9 @@ export function ProviderBookings() {
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="pending_payment">Pending payment</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="provider_on_hold">On hold</SelectItem>
+                <SelectItem value="provider_accepted">Accepted</SelectItem>
+                <SelectItem value="provider_rejected">Rejected</SelectItem>
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
@@ -98,9 +132,9 @@ export function ProviderBookings() {
 
       <StatGrid>
         <StatCard label="Bookings" value={bookings.length} hint="All provider-visible bookings in the current result set" icon={CalendarRange} />
-        <StatCard label="Paid" value={paid} hint="Bookings ready for service delivery or settlement progression" icon={CircleDollarSign} tone="info" />
+        <StatCard label="Paid" value={paid} hint="Awaiting provider action — accept, hold, or reject" icon={CircleDollarSign} tone="info" />
+        <StatCard label="On hold" value={onHold} hint="Bookings you've placed on hold pending review" icon={Clock} tone="warning" />
         <StatCard label="Confirmed" value={confirmed} hint="Confirmed service commitments still to be delivered" icon={TicketCheck} tone="success" />
-        <StatCard label="Cancelled" value={cancelled} hint="Cancelled bookings that may need follow-up or refunds" icon={TicketX} tone="warning" />
       </StatGrid>
 
       <WorkspaceGrid
@@ -146,7 +180,45 @@ export function ProviderBookings() {
                   <InfoCard label="Service date" value={formatDate(selectedBooking.serviceDate)} />
                   <InfoCard label="Subtotal" value={formatMoney(selectedBooking.subtotalAmount, selectedBooking.currencyCode)} />
                   <InfoCard label="Commission" value={formatMoney(selectedBooking.commissionAmount, selectedBooking.currencyCode)} />
+                  <InfoCard label="Status" value={titleizeToken(selectedBooking.status)} />
+                  <InfoCard label="Net payable" value={formatMoney(selectedBooking.subtotalAmount - selectedBooking.commissionAmount, selectedBooking.currencyCode)} />
                 </InfoGrid>
+
+                {/* ── Booking action panel ── */}
+                {canAct && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/25 p-4 space-y-3">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Actions</div>
+                    {actionError && <Notice message={actionError} variant="destructive" />}
+                    <Button
+                      className="w-full"
+                      onClick={() => acceptMutation.mutate()}
+                      disabled={acceptMutation.isPending}
+                    >
+                      <Check className="mr-2 h-4 w-4" /> Accept booking
+                    </Button>
+                    <Input
+                      placeholder="Reason (required for hold/reject)"
+                      value={actionReason}
+                      onChange={(e) => setActionReason(e.target.value)}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => holdMutation.mutate()}
+                        disabled={holdMutation.isPending || !actionReason || selectedBooking.status === 'provider_on_hold'}
+                      >
+                        <Clock className="mr-2 h-4 w-4" /> Hold
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => rejectMutation.mutate()}
+                        disabled={rejectMutation.isPending || !actionReason}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {(chargeLines ?? []).length === 0 && (

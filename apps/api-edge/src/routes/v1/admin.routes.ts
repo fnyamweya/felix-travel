@@ -275,6 +275,90 @@ adminRoutes.get('/bookings', async (c) => {
     return c.json(success(result));
 });
 
+adminRoutes.get('/bookings/:bookingId', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.getBookingDetail(c.req.param('bookingId'));
+    return c.json(success(result));
+});
+
+adminRoutes.post('/bookings/:bookingId/confirm', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const { BookingService } = await import('../../services/booking.service.js');
+    const svc = new BookingService(c.env.DB, c.env);
+    const result = await svc.adminConfirm(c.req.param('bookingId'), session);
+    return c.json(success(result));
+});
+
+adminRoutes.get('/bookings/:bookingId/history', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const { BookingService } = await import('../../services/booking.service.js');
+    const svc = new BookingService(c.env.DB, c.env);
+    const result = await svc.getStatusHistory(c.req.param('bookingId'));
+    return c.json(success(result));
+});
+
+// ─── Booking Charge Overrides ─────────────────────────────────────
+
+adminRoutes.get('/bookings/:bookingId/charge-overrides', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.listChargeOverrides(c.req.param('bookingId'));
+    return c.json(success(result));
+});
+
+adminRoutes.post('/bookings/:bookingId/charge-overrides', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const body = await c.req.json<{
+        chargeDefinitionId: string;
+        bookingItemId?: string;
+        overrideAmount?: number;
+        overrideRateBps?: number;
+        isWaived?: boolean;
+        reason: string;
+    }>();
+    if (!body.chargeDefinitionId || !body.reason) {
+        throw new ValidationError('chargeDefinitionId and reason are required');
+    }
+    const svc = getAdminService(c);
+    const result = await svc.createChargeOverride(c.req.param('bookingId'), body, session);
+    return c.json(success(result), 201);
+});
+
+adminRoutes.post('/bookings/:bookingId/charge-overrides/:overrideId/approve', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.approveChargeOverride(c.req.param('overrideId'), session);
+    return c.json(success(result));
+});
+
+adminRoutes.post('/bookings/:bookingId/charge-overrides/:overrideId/reject', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const { reason } = await c.req.json<{ reason: string }>();
+    const svc = getAdminService(c);
+    const result = await svc.rejectChargeOverride(c.req.param('overrideId'), reason ?? 'Rejected', session);
+    return c.json(success(result));
+});
+
+// ─── Reconciliation ───────────────────────────────────────────────
+
+adminRoutes.get('/reconciliation/summary', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const from = c.req.query('from');
+    const to = c.req.query('to');
+    const svc = getAdminService(c);
+    const result = await svc.getReconciliationSummary(from, to);
+    return c.json(success(result));
+});
+
 // ─── Payouts (admin view) ─────────────────────────────────────────
 
 adminRoutes.get('/payouts', async (c) => {

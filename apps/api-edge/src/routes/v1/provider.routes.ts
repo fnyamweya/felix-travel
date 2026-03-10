@@ -278,6 +278,43 @@ providerRoutes.get('/:providerId/bookings', async (c) => {
     return c.json(success({ bookings, meta: { page, pageSize, total: bookings.length } }));
 });
 
+// ── Booking actions (accept / hold / reject) ──────────────────────────────────
+
+providerRoutes.post('/:providerId/bookings/:bookingId/accept', async (c) => {
+    const providerId = c.req.param('providerId');
+    const session = c.get('session');
+    ensureProviderScope(session, providerId);
+
+    const body = await c.req.json().catch(() => ({})) as { notes?: string };
+    const service = new BookingService(c.env.DB, c.env);
+    const booking = await service.acceptBooking(c.req.param('bookingId'), session, body.notes);
+    return c.json(success(booking));
+});
+
+providerRoutes.post('/:providerId/bookings/:bookingId/hold', async (c) => {
+    const providerId = c.req.param('providerId');
+    const session = c.get('session');
+    ensureProviderScope(session, providerId);
+
+    const { reason } = await c.req.json<{ reason: string }>();
+    if (!reason) throw new ValidationError('reason is required');
+    const service = new BookingService(c.env.DB, c.env);
+    const booking = await service.holdBooking(c.req.param('bookingId'), reason, session);
+    return c.json(success(booking));
+});
+
+providerRoutes.post('/:providerId/bookings/:bookingId/reject', async (c) => {
+    const providerId = c.req.param('providerId');
+    const session = c.get('session');
+    ensureProviderScope(session, providerId);
+
+    const { reason } = await c.req.json<{ reason: string }>();
+    if (!reason) throw new ValidationError('reason is required');
+    const service = new BookingService(c.env.DB, c.env);
+    const booking = await service.rejectBooking(c.req.param('bookingId'), reason, session);
+    return c.json(success(booking));
+});
+
 providerRoutes.get('/:providerId/payouts', async (c) => {
     const providerId = c.req.param('providerId');
     const session = c.get('session');

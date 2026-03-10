@@ -70,5 +70,15 @@ export function providerEndpoints(client: FelixApiClient) {
 
     getPayouts: (providerId: string, params?: { page?: number; pageSize?: number }) =>
       client.get<{ payouts: unknown[]; meta: PaginationMeta }>(`/v1/providers/${providerId}/payouts`, params),
+
+    // Booking actions
+    acceptBooking: (providerId: string, bookingId: string, notes?: string) =>
+      client.post<unknown>(`/v1/providers/${providerId}/bookings/${bookingId}/accept`, notes ? { notes } : {}),
+
+    holdBooking: (providerId: string, bookingId: string, reason: string) =>
+      client.post<unknown>(`/v1/providers/${providerId}/bookings/${bookingId}/hold`, { reason }),
+
+    rejectBooking: (providerId: string, bookingId: string, reason: string) =>
+      client.post<unknown>(`/v1/providers/${providerId}/bookings/${bookingId}/reject`, { reason }),
   };
 }

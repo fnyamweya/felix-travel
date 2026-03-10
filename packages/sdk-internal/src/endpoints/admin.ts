@@ -87,5 +87,44 @@ export function adminEndpoints(client: FelixApiClient) {
 
     enableUser: (userId: string) =>
       client.post<unknown>(`/v1/admin/users/${userId}/enable`),
+
+    // Booking detail & actions
+    getBookingDetail: (bookingId: string) =>
+      client.get<{
+        booking: Booking;
+        items: unknown[];
+        history: unknown[];
+        overrides: unknown[];
+      }>(`/v1/admin/bookings/${bookingId}`),
+
+    adminConfirmBooking: (bookingId: string) =>
+      client.post<unknown>(`/v1/admin/bookings/${bookingId}/confirm`),
+
+    getBookingHistory: (bookingId: string) =>
+      client.get<unknown[]>(`/v1/admin/bookings/${bookingId}/history`),
+
+    // Booking charge overrides
+    listChargeOverrides: (bookingId: string) =>
+      client.get<unknown[]>(`/v1/admin/bookings/${bookingId}/charge-overrides`),
+
+    createChargeOverride: (bookingId: string, body: {
+      chargeDefinitionId: string;
+      bookingItemId?: string;
+      overrideAmount?: number;
+      overrideRateBps?: number;
+      isWaived?: boolean;
+      reason: string;
+    }) =>
+      client.post<unknown>(`/v1/admin/bookings/${bookingId}/charge-overrides`, body),
+
+    approveChargeOverride: (bookingId: string, overrideId: string) =>
+      client.post<unknown>(`/v1/admin/bookings/${bookingId}/charge-overrides/${overrideId}/approve`),
+
+    rejectChargeOverride: (bookingId: string, overrideId: string, reason: string) =>
+      client.post<unknown>(`/v1/admin/bookings/${bookingId}/charge-overrides/${overrideId}/reject`, { reason }),
+
+    // Reconciliation
+    getReconciliationSummary: (params?: { from?: string; to?: string }) =>
+      client.get<unknown>('/v1/admin/reconciliation/summary', params),
   };
 }

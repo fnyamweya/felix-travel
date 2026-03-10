@@ -36,7 +36,7 @@ export const bookings = sqliteTable(
     listingId: text('listing_id').notNull().references(() => listings.id),
     quoteId: text('quote_id').references(() => bookingQuotes.id),
     status: text('status', {
-      enum: ['draft', 'quoted', 'pending_payment', 'payment_processing', 'paid', 'confirmed', 'partially_refunded', 'refunded', 'cancelled', 'failed', 'payout_pending', 'payout_processing', 'payout_completed'],
+      enum: ['draft', 'quoted', 'pending_payment', 'payment_processing', 'paid', 'provider_accepted', 'provider_on_hold', 'provider_rejected', 'confirmed', 'partially_refunded', 'refunded', 'cancelled', 'failed', 'payout_pending', 'payout_processing', 'payout_completed'],
     }).notNull().default('draft'),
     serviceDate: text('service_date').notNull(),
     serviceDateEnd: text('service_date_end'),
@@ -112,4 +112,35 @@ export const bookingStatusHistory = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
   },
   (t) => ({ bookingIdx: index('booking_status_history_booking_idx').on(t.bookingId) })
+);
+
+/**
+ * Booking-level charge overrides — allows admins to override a specific
+ * charge amount on a booking (or booking item). The override replaces the
+ * engine-computed amount when calculating the final breakdown.
+ */
+export const bookingChargeOverrides = sqliteTable(
+  'booking_charge_overrides',
+  {
+    id: text('id').primaryKey(),
+    bookingId: text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
+    bookingItemId: text('booking_item_id'),
+    chargeDefinitionId: text('charge_definition_id').notNull(),
+    /** null = use engine value; set = override with this fixed amount (minor units) */
+    overrideAmount: integer('override_amount'),
+    /** null = use engine value; set = override rate in basis points */
+    overrideRateBps: integer('override_rate_bps'),
+    /** If true the entire charge is waived for this booking */
+    isWaived: integer('is_waived', { mode: 'boolean' }).notNull().default(false),
+    reason: text('reason').notNull(),
+    createdBy: text('created_by').notNull().references(() => users.id),
+    approvedBy: text('approved_by'),
+    status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    bookingIdx: index('booking_charge_overrides_booking_idx').on(t.bookingId),
+    chargeDefIdx: index('booking_charge_overrides_charge_def_idx').on(t.chargeDefinitionId),
+  })
 );

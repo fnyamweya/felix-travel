@@ -148,6 +148,81 @@ export class BookingService {
     return updated;
   }
 
+  // ── Provider booking actions ─────────────────────────────────────
+
+  async acceptBooking(bookingId: string, session: SessionContext, notes?: string) {
+    const booking = await this.bookingsRepo.findById(bookingId);
+    if (!booking) throw new NotFoundError('Booking', bookingId);
+    assertProviderOwnership(session, booking.providerId);
+
+    if (!['paid', 'provider_on_hold'].includes(booking.status)) {
+      throw new AppError('INVALID_STATE', `Booking in status '${booking.status}' cannot be accepted`, 422);
+    }
+
+    await this.bookingsRepo.updateStatus(
+      bookingId, 'provider_accepted', session.userId,
+      notes ?? 'Provider accepted booking',
+    );
+
+    // Auto-advance to confirmed once provider accepts
+    return this.bookingsRepo.updateStatus(
+      bookingId, 'confirmed', session.userId,
+      'Auto-confirmed after provider acceptance',
+    );
+  }
+
+  async holdBooking(bookingId: string, reason: string, session: SessionContext) {
+    const booking = await this.bookingsRepo.findById(bookingId);
+    if (!booking) throw new NotFoundError('Booking', bookingId);
+    assertProviderOwnership(session, booking.providerId);
+
+    if (booking.status !== 'paid') {
+      throw new AppError('INVALID_STATE', `Booking in status '${booking.status}' cannot be put on hold`, 422);
+    }
+
+    return this.bookingsRepo.updateStatus(
+      bookingId, 'provider_on_hold', session.userId,
+      reason,
+    );
+  }
+
+  async rejectBooking(bookingId: string, reason: string, session: SessionContext) {
+    const booking = await this.bookingsRepo.findById(bookingId);
+    if (!booking) throw new NotFoundError('Booking', bookingId);
+    assertProviderOwnership(session, booking.providerId);
+
+    if (!['paid', 'provider_on_hold'].includes(booking.status)) {
+      throw new AppError('INVALID_STATE', `Booking in status '${booking.status}' cannot be rejected`, 422);
+    }
+
+    return this.bookingsRepo.updateStatus(
+      bookingId, 'provider_rejected', session.userId,
+      reason,
+    );
+  }
+
+  /** Admin override: force-confirm a booking regardless of provider action */
+  async adminConfirm(bookingId: string, session: SessionContext) {
+    const booking = await this.bookingsRepo.findById(bookingId);
+    if (!booking) throw new NotFoundError('Booking', bookingId);
+
+    const confirmable = ['paid', 'provider_accepted', 'provider_on_hold'];
+    if (!confirmable.includes(booking.status)) {
+      throw new AppError('INVALID_STATE', `Booking in status '${booking.status}' cannot be confirmed`, 422);
+    }
+
+    return this.bookingsRepo.updateStatus(
+      bookingId, 'confirmed', session.userId,
+      'Admin confirmed booking',
+    );
+  }
+
+  async getStatusHistory(bookingId: string) {
+    return this.bookingsRepo.getStatusHistory(bookingId);
+  }
+
+  // ── Cancellation ─────────────────────────────────────────────────
+
   async cancel(bookingId: string, reason: string, session: SessionContext) {
     const booking = await this.bookingsRepo.findById(bookingId);
     if (!booking) throw new NotFoundError('Booking', bookingId);
