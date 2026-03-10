@@ -9,7 +9,7 @@
  * - Handle password reset and magic links
  * - Handle invites for agents and providers
  */
-import { UsersRepository } from '@felix-travel/db';
+import { UsersRepository, ProvidersRepository } from '@felix-travel/db';
 import {
   hashPassword,
   verifyPassword,
@@ -29,13 +29,21 @@ import { eq, and, isNull } from 'drizzle-orm';
 
 export class AuthService {
   private readonly repo: UsersRepository;
+  private readonly providersRepo: ProvidersRepository;
   private readonly env: ReturnType<typeof parseEnv>;
   private readonly db: ReturnType<typeof createDbClient>;
 
   constructor(db: D1Database, env: Env) {
     this.db = createDbClient(db);
     this.repo = new UsersRepository(this.db);
+    this.providersRepo = new ProvidersRepository(this.db);
     this.env = parseEnv(env as unknown as Record<string, string>);
+  }
+
+  private async resolveProviderId(userId: string, role: string): Promise<string | null> {
+    if (role !== 'service_provider' && role !== 'agent') return null;
+    const membership = await this.providersRepo.findMembershipByUser(userId);
+    return membership?.providerId ?? null;
   }
 
   async register(input: {
@@ -106,8 +114,9 @@ export class AuthService {
       throw new AppError('ACCOUNT_DISABLED', 'This account has been disabled', 403);
     }
 
-    const tokens = await this.issueTokenPair(user.id, user.role, null);
-    return { user: this.toAuthUser(user), tokens };
+    const providerId = await this.resolveProviderId(user.id, user.role);
+    const tokens = await this.issueTokenPair(user.id, user.role, providerId);
+    return { user: this.toAuthUser(user, providerId), tokens };
   }
 
   async refreshSession(sessionId: string): Promise<TokenPair> {
@@ -125,7 +134,8 @@ export class AuthService {
 
     // Rotate session: revoke old, issue new
     await this.repo.revokeSession(sessionId);
-    return this.issueTokenPair(user.id, user.role, null);
+    const providerId = await this.resolveProviderId(user.id, user.role);
+    return this.issueTokenPair(user.id, user.role, providerId);
   }
 
   async logout(sessionId: string): Promise<void> {
@@ -200,8 +210,9 @@ export class AuthService {
     await this.repo.createProfile({ userId, firstName: input.firstName, lastName: input.lastName });
     await this.repo.acceptInvite(invite.id);
 
-    const tokens = await this.issueTokenPair(user.id, user.role, invite.providerId ?? null);
-    return { user: this.toAuthUser(user), tokens };
+    const inviteProviderId = invite.providerId ?? await this.resolveProviderId(user.id, user.role);
+    const tokens = await this.issueTokenPair(user.id, user.role, inviteProviderId);
+    return { user: this.toAuthUser(user, inviteProviderId), tokens };
   }
 
   async getMe(userId: string): Promise<AuthUser> {
@@ -212,7 +223,8 @@ export class AuthService {
     const profile = await this.db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
     });
-    return this.toAuthUser({ ...user, firstName: profile?.firstName ?? '', lastName: profile?.lastName ?? '' });
+    const providerId = await this.resolveProviderId(userId, user.role);
+    return this.toAuthUser({ ...user, firstName: profile?.firstName ?? '', lastName: profile?.lastName ?? '' }, providerId);
   }
 
   async requestPasswordReset(email: string): Promise<void> {
@@ -299,14 +311,14 @@ export class AuthService {
     };
   }
 
-  private toAuthUser(user: { id: string; email: string; role: string; emailVerified: boolean; createdAt: string; phone?: string | null; firstName?: string; lastName?: string }): AuthUser {
+  private toAuthUser(user: { id: string; email: string; role: string; emailVerified: boolean; createdAt: string; phone?: string | null; firstName?: string; lastName?: string }, providerId?: string | null): AuthUser {
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName ?? '',
       lastName: user.lastName ?? '',
       role: user.role as AuthUser['role'],
-      providerId: null,
+      providerId: providerId ?? null,
       emailVerified: user.emailVerified,
       phone: user.phone ?? null,
       phoneVerified: false,
