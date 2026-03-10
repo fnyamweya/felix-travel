@@ -40,3 +40,19 @@ export const approveRefundSchema = z.object({
 export const rejectRefundSchema = z.object({
   reason: z.string().min(1).max(500),
 });
+
+// ── Split checkout ──────────────────────────────────────────────────────────
+
+export const splitCheckoutItemSchema = z.object({
+  method: z.enum(['mpesa', 'card', 'bank_transfer', 'ussd', 'wallet']),
+  amount: z.number().int().positive(),
+  accountNumber: z.string().min(1),
+  MSISDN: z.string().optional(),
+  paymentOptionCode: z.string().optional(),
+});
+
+export const initiateSplitCheckoutSchema = z.object({
+  bookingId: z.string().min(1),
+  idempotencyKey: z.string().min(1).max(255),
+  splits: z.array(splitCheckoutItemSchema).min(1).max(5),
+});

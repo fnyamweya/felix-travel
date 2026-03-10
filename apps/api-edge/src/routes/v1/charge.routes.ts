@@ -47,6 +47,8 @@ import {
   updateChargeRuleSchema,
   createChargeDependencySchema,
   chargeSimulationSchema,
+  createChargeAssignmentSchema,
+  updateChargeAssignmentSchema,
 } from '@felix-travel/validation';
 
 type HonoEnv = {
@@ -275,4 +277,50 @@ chargeRoutes.get('/tax-codes/:country', async (c) => {
   const country = c.req.param('country').toUpperCase();
   const codes = await svc.getTaxCodes(country);
   return c.json(success(codes));
+});
+
+// ── Charge Assignments ────────────────────────────────────────────────────────
+
+chargeRoutes.get('/assignments', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const targetType = c.req.query('targetType');
+  const targetId = c.req.query('targetId');
+  if (!targetType) {
+    throw new ValidationError('targetType query parameter is required', {});
+  }
+  const svc = getSvc(c);
+  const assignments = await svc.listAssignments(targetType as any, targetId ?? undefined);
+  return c.json(success(assignments));
+});
+
+chargeRoutes.post('/assignments', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const body = await c.req.json();
+  const parsed = createChargeAssignmentSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new ValidationError('Invalid assignment input', { issues: parsed.error.flatten().fieldErrors });
+  }
+  const session = c.get('session');
+  const svc = getSvc(c);
+  const assignment = await svc.createAssignment(parsed.data, session.userId);
+  return c.json(success(assignment), 201);
+});
+
+chargeRoutes.patch('/assignments/:id', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const body = await c.req.json();
+  const parsed = updateChargeAssignmentSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new ValidationError('Invalid assignment input', { issues: parsed.error.flatten().fieldErrors });
+  }
+  const svc = getSvc(c);
+  const assignment = await svc.updateAssignment(c.req.param('id'), parsed.data);
+  return c.json(success(assignment));
+});
+
+chargeRoutes.delete('/assignments/:id', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const svc = getSvc(c);
+  await svc.deleteAssignment(c.req.param('id'));
+  return c.json(success({ deleted: true }));
 });

@@ -1,7 +1,7 @@
 import type { Env } from '../bindings.js';
 import { createDbClient } from '@felix-travel/db';
 import { ChargesRepository, ChargeService as CoreChargeService } from '@felix-travel/charges';
-import type { ChargeCalculationContext } from '@felix-travel/charges';
+import type { ChargeCalculationContext, ChargeAssignmentTargetType } from '@felix-travel/charges';
 import type { SessionContext } from '@felix-travel/types';
 import { AppError } from '../lib/errors.js';
 import { newId } from '../lib/id.js';
@@ -236,5 +236,60 @@ export class ChargeService {
 
   async getTaxCodes(country: string) {
     return this.repo.findTaxCodesByCountry(country);
+  }
+
+  // ── Charge Assignments ────────────────────────────────────────────────────
+
+  async listAssignments(targetType: ChargeAssignmentTargetType, targetId?: string) {
+    return this.repo.findAssignmentsByTarget(targetType, targetId ?? undefined);
+  }
+
+  async createAssignment(data: {
+    chargeDefinitionId: string;
+    targetType: ChargeAssignmentTargetType;
+    targetId?: string | undefined;
+    overrideCalcMethod?: string | undefined;
+    overrideRateBps?: number | undefined;
+    overrideFixedAmount?: number | undefined;
+    isWaived?: boolean | undefined;
+    priority?: number | undefined;
+    effectiveFrom?: string | undefined;
+    effectiveTo?: string | undefined;
+    reason?: string | undefined;
+  }, actorId: string) {
+    return this.repo.insertAssignment({
+      id: newId(),
+      chargeDefinitionId: data.chargeDefinitionId,
+      targetType: data.targetType,
+      targetId: data.targetId ?? null,
+      overrideCalcMethod: (data.overrideCalcMethod ?? null) as any,
+      overrideRateBps: data.overrideRateBps ?? null,
+      overrideFixedAmount: data.overrideFixedAmount ?? null,
+      isWaived: data.isWaived ?? false,
+      priority: data.priority ?? 0,
+      isActive: true,
+      effectiveFrom: data.effectiveFrom ?? new Date().toISOString(),
+      effectiveTo: data.effectiveTo ?? null,
+      reason: data.reason ?? null,
+      createdBy: actorId,
+    });
+  }
+
+  async updateAssignment(id: string, data: {
+    overrideCalcMethod?: string | null | undefined;
+    overrideRateBps?: number | null | undefined;
+    overrideFixedAmount?: number | null | undefined;
+    isWaived?: boolean | undefined;
+    priority?: number | undefined;
+    isActive?: boolean | undefined;
+    effectiveFrom?: string | undefined;
+    effectiveTo?: string | null | undefined;
+    reason?: string | null | undefined;
+  }) {
+    return this.repo.updateAssignment(id, data as any);
+  }
+
+  async deleteAssignment(id: string) {
+    return this.repo.deleteAssignment(id);
   }
 }

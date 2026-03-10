@@ -190,7 +190,7 @@ export function ProviderListings() {
       <PageShell>
         <EmptyBlock
           title="No provider context is attached to this account."
-          description="Assign a provider profile to this user before managing listings and inventory."
+          description="Assign a provider to manage listings."
         />
       </PageShell>
     );
@@ -324,7 +324,7 @@ export function ProviderListings() {
       <PageHeader
         eyebrow="Provider listings"
         title="Listing management"
-        description="Manage sellable inventory with clearer controls for copy, pricing rules, blackout dates, and day-level capacity."
+        description="Manage inventory, pricing, blackouts, and capacity."
         actions={
           <>
             <Button
@@ -361,7 +361,7 @@ export function ProviderListings() {
         main={
           <SectionCard
             title="Listing catalog"
-            description="Select a listing to inspect its commercial setup, pricing, and availability controls."
+            description="Select a listing to manage setup and pricing."
           >
             <div className="space-y-3">
               {listingItems.map((listing) => (
@@ -394,7 +394,7 @@ export function ProviderListings() {
         side={
           <SectionCard
             title={isCreating ? 'Create listing' : 'Listing details'}
-            description="Keep the commercial profile clear, complete, and ready for review."
+            description="Keep the listing profile complete and ready."
           >
             <div className="space-y-6">
               <FieldGrid>
@@ -457,7 +457,7 @@ export function ProviderListings() {
                 <TextField label="Tags" value={listingForm.tags} onChange={(event) => setListingForm((current) => ({ ...current, tags: event.target.value }))} placeholder="family, premium, wildlife" />
               </FieldGrid>
 
-              <SwitchField label="Instant booking enabled" description="Allow this listing to confirm more quickly once it is available for sale." checked={listingForm.isInstantBooking} onCheckedChange={(value) => setListingForm((current) => ({ ...current, isInstantBooking: value }))} />
+              <SwitchField label="Instant booking enabled" description="Enable faster confirmation when on sale." checked={listingForm.isInstantBooking} onCheckedChange={(value) => setListingForm((current) => ({ ...current, isInstantBooking: value }))} />
 
               {!isCreating && selectedListing ? (
                 <InfoGrid>
@@ -473,10 +473,10 @@ export function ProviderListings() {
       <div className="grid gap-6 xl:grid-cols-3">
         <SectionCard
           title="Pricing rules"
-          description="Create commercial pricing variants for the currently selected listing."
+          description="Add pricing variants for the selected listing."
         >
           {!selectedListingId || isCreating ? (
-            <EmptyBlock title="Select an existing listing" description="Pricing rules are available after the listing record has been created." />
+            <EmptyBlock title="Select an existing listing" description="Available after the listing is created." />
           ) : (
             <div className="space-y-5">
               <div className="space-y-3">
@@ -487,7 +487,7 @@ export function ProviderListings() {
                   </div>
                 ))}
                 {(managementData?.pricingRules ?? []).length === 0 && (
-                  <EmptyBlock title="No pricing rules configured" description="Add a pricing rule for alternate unit-based commercial rates." />
+                  <EmptyBlock title="No pricing rules configured" description="Add a rule for unit-based pricing." />
                 )}
               </div>
               <FieldGrid>
@@ -519,10 +519,10 @@ export function ProviderListings() {
 
         <SectionCard
           title="Blackout dates"
-          description="Block dates that should not be bookable for the selected listing."
+          description="Block non-bookable dates for this listing."
         >
           {!selectedListingId || isCreating ? (
-            <EmptyBlock title="Select an existing listing" description="Blackout dates are managed after a listing has been created." />
+            <EmptyBlock title="Select an existing listing" description="Available after the listing is created." />
           ) : (
             <div className="space-y-5">
               <div className="space-y-3">
@@ -533,7 +533,7 @@ export function ProviderListings() {
                   </div>
                 ))}
                 {(managementData?.blackouts ?? []).length === 0 && (
-                  <EmptyBlock title="No blackout dates set" description="Add blackout dates for maintenance, closures, or other non-bookable periods." />
+                  <EmptyBlock title="No blackout dates set" description="Block dates for maintenance or closures." />
                 )}
               </div>
               <FieldGrid>
@@ -549,10 +549,10 @@ export function ProviderListings() {
 
         <SectionCard
           title="Inventory"
-          description="Update date-level availability and capacity for the selected listing."
+          description="Set date-level availability and capacity."
         >
           {!selectedListingId || isCreating ? (
-            <EmptyBlock title="Select an existing listing" description="Inventory controls are available after the listing has been created." />
+            <EmptyBlock title="Select an existing listing" description="Available after the listing is created." />
           ) : (
             <div className="space-y-5">
               <div className="space-y-3">
@@ -563,14 +563,14 @@ export function ProviderListings() {
                   </div>
                 ))}
                 {(managementData?.inventory ?? []).length === 0 && (
-                  <EmptyBlock title="No inventory records set" description="Create date-level capacity records to control sellable availability." />
+                  <EmptyBlock title="No inventory records set" description="Add capacity records to control availability." />
                 )}
               </div>
               <FieldGrid>
                 <TextField label="Date" type="date" value={inventoryForm.date} onChange={(event) => setInventoryForm((current) => ({ ...current, date: event.target.value }))} />
                 <TextField label="Total capacity" type="number" value={inventoryForm.totalCapacity} onChange={(event) => setInventoryForm((current) => ({ ...current, totalCapacity: event.target.value }))} />
               </FieldGrid>
-              <SwitchField label="Available for booking" description="Allow customers to book this listing on the selected date." checked={inventoryForm.isAvailable} onCheckedChange={(value) => setInventoryForm((current) => ({ ...current, isAvailable: value }))} />
+              <SwitchField label="Available for booking" description="Allow bookings on the selected date." checked={inventoryForm.isAvailable} onCheckedChange={(value) => setInventoryForm((current) => ({ ...current, isAvailable: value }))} />
               <Button variant="outline" onClick={() => void inventoryMutation.mutateAsync()} loading={inventoryMutation.isPending}>
                 Update inventory
               </Button>

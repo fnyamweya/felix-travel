@@ -5,7 +5,6 @@ import { ArrowRight, Search } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
-  Badge,
   Button,
   Card,
   CardContent,
@@ -33,7 +32,7 @@ import {
 } from '@felix-travel/ui';
 
 export function PageShell({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('space-y-6', className)}>{children}</div>;
+  return <div className={cn('space-y-5', className)}>{children}</div>;
 }
 
 export function PageHeader({
@@ -42,27 +41,23 @@ export function PageHeader({
   description,
   actions,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div className="space-y-3">
-        <Badge variant="secondary" className="rounded-full bg-primary/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary">
-          {eyebrow}
-        </Badge>
-        <div className="space-y-2">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            {title}
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            {description}
-          </p>
-        </div>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-1">
+        {eyebrow ? (
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
+        ) : null}
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+        {description ? (
+          <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+        ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }
@@ -74,25 +69,20 @@ export function HeroPanel({
   spotlight,
 }: {
   title: string;
-  description: string;
+  description?: string;
   actions?: ReactNode;
   spotlight?: ReactNode;
 }) {
   return (
-    <Card className="border-border/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-soft">
-      <CardContent className="flex flex-col gap-6 p-6 lg:flex-row lg:items-end lg:justify-between lg:p-8">
-        <div className="max-w-3xl space-y-4">
-          <Badge className="border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/80">
-            Workspace
-          </Badge>
-          <div className="space-y-3">
-            <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
-            <p className="max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">{description}</p>
-          </div>
-          {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+    <Card className="border-border/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
+      <CardContent className="flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>
+          {description ? <p className="max-w-xl text-sm text-slate-300">{description}</p> : null}
+          {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
         </div>
         {spotlight ? (
-          <div className="min-w-[280px] rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur">
             {spotlight}
           </div>
         ) : null}
@@ -102,7 +92,7 @@ export function HeroPanel({
 }
 
 export function StatGrid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{children}</div>;
+  return <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{children}</div>;
 }
 
 export function StatCard({
@@ -114,7 +104,7 @@ export function StatCard({
 }: {
   label: string;
   value: string | number;
-  hint: string;
+  hint?: string;
   icon?: LucideIcon;
   tone?: 'default' | 'success' | 'warning' | 'info';
 }) {
@@ -127,19 +117,19 @@ export function StatCard({
 
   return (
     <Card className={cn('border-border/60 shadow-sm', toneClasses[tone])}>
-      <CardContent className="space-y-3 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="text-xl font-semibold tracking-tight text-foreground">{value}</p>
           </div>
           {Icon ? (
-            <div className="rounded-xl border border-border/60 bg-background/70 p-2.5 text-primary shadow-sm">
-              <Icon className="h-4 w-4" />
+            <div className="rounded-lg border border-border/60 bg-background/70 p-2 text-primary">
+              <Icon className="h-3.5 w-3.5" />
             </div>
           ) : null}
         </div>
-        <p className="text-sm text-muted-foreground">{hint}</p>
+        {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );
@@ -156,13 +146,13 @@ export function QuickActionCard({
 }) {
   return (
     <Link to={to}>
-      <Card className="h-full border-border/60 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft">
-        <CardContent className="flex h-full flex-col gap-3 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-foreground">{title}</h3>
-            <ArrowRight className="h-4 w-4 text-primary" />
+      <Card className="h-full border-border/60 bg-card transition-all hover:-translate-y-px hover:border-primary/30 hover:shadow-md">
+        <CardContent className="flex h-full flex-col gap-2 p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+            <ArrowRight className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{description}</p>
         </CardContent>
       </Card>
     </Link>
@@ -177,21 +167,21 @@ export function SectionCard({
   className,
 }: {
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <Card className={cn('border-border/60 shadow-sm', className)}>
-      <CardHeader className="gap-4 border-b border-border/60 pb-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1">
-          <CardTitle className="text-xl">{title}</CardTitle>
-          <CardDescription className="max-w-2xl leading-6">{description}</CardDescription>
+      <CardHeader className="gap-3 border-b border-border/60 pb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-0.5">
+          <CardTitle className="text-base">{title}</CardTitle>
+          {description ? <CardDescription className="max-w-xl text-xs">{description}</CardDescription> : null}
         </div>
-        {action ? <div className="flex flex-wrap items-center gap-3">{action}</div> : null}
+        {action ? <div className="flex flex-wrap items-center gap-2">{action}</div> : null}
       </CardHeader>
-      <CardContent className="p-5">{children}</CardContent>
+      <CardContent className="p-4">{children}</CardContent>
     </Card>
   );
 }
@@ -311,10 +301,10 @@ export function SwitchField({
   className?: string | undefined;
 }) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-muted/40 p-4', className)}>
-      <div className="space-y-1">
+    <div className={cn('flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/40 p-3', className)}>
+      <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>
@@ -344,9 +334,9 @@ export function InfoGrid({ children, className }: { children: ReactNode; classNa
 
 export function InfoCard({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/40 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <div className="mt-2 text-sm font-medium text-foreground">{value}</div>
+    <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
     </div>
   );
 }
@@ -369,15 +359,15 @@ export function ListSelector({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full items-start justify-between gap-4 rounded-2xl border px-4 py-4 text-left transition-all',
+        'flex w-full items-start justify-between gap-3 rounded-lg border px-3 py-3 text-left transition-colors',
         selected
-          ? 'border-primary/40 bg-primary/5 shadow-sm'
+          ? 'border-primary/40 bg-primary/5'
           : 'border-border/60 bg-background hover:border-primary/25 hover:bg-muted/40'
       )}
     >
-      <div className="space-y-1">
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-        <div className="text-sm leading-6 text-muted-foreground">{subtitle}</div>
+      <div className="space-y-0.5">
+        <div className="text-sm font-medium text-foreground">{title}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
       </div>
       {badge}
     </button>
@@ -394,11 +384,11 @@ export function EmptyBlock({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border/70 bg-muted/30 px-6 py-12 text-center">
-      <div className="mx-auto max-w-md space-y-3">
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-        {action ? <div className="flex justify-center">{action}</div> : null}
+    <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 px-4 py-8 text-center">
+      <div className="mx-auto max-w-sm space-y-2">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <p className="text-xs text-muted-foreground">{description}</p>
+        {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
       </div>
     </div>
   );
@@ -412,12 +402,12 @@ export function DataTable({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60">
+    <div className="overflow-hidden rounded-lg border border-border/60">
       <Table>
-        <TableHeader className="bg-muted/50">
+        <TableHeader className="bg-muted/40">
           <TableRow className="hover:bg-transparent">
             {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
+              <TableHead key={header} className="text-[11px]">{header}</TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -496,14 +486,14 @@ export function FormSection({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</h3>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        {description ? <p className="mt-0.5 text-xs text-muted-foreground">{description}</p> : null}
       </div>
       <Separator />
       {children}

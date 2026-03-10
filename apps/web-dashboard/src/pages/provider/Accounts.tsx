@@ -200,7 +200,7 @@ export function ProviderAccounts() {
       <PageShell>
         <EmptyBlock
           title="No provider context is attached to this account."
-          description="Assign a provider profile to this user before managing provider settings and integrations."
+          description="Assign a provider to manage settings and integrations."
         />
       </PageShell>
     );
@@ -307,7 +307,7 @@ export function ProviderAccounts() {
       <PageHeader
         eyebrow="Provider accounts"
         title="Accounts and integrations"
-        description="Keep public provider details accurate, control settlement preferences, and manage payout destinations and outbound webhooks from one secure workspace."
+        description="Manage provider details, settlement preferences, and webhooks."
       />
 
       {(message || errorMessage) ? (
@@ -316,9 +316,9 @@ export function ProviderAccounts() {
 
       <StatGrid>
         <StatCard label="Payout accounts" value={payoutAccounts.length} hint="Registered settlement destinations" icon={Landmark} />
-        <StatCard label="Default route" value={payoutAccounts.some((account: any) => account.isDefault) ? 'Ready' : 'Missing'} hint="A default account is required for payout requests" icon={ShieldCheck} tone="warning" />
+        <StatCard label="Default route" value={payoutAccounts.some((account: any) => account.isDefault) ? 'Ready' : 'Missing'} hint="Default account required for payouts" icon={ShieldCheck} tone="warning" />
         <StatCard label="Webhook subscriptions" value={subscriptions.length} hint="Outbound operational integrations" icon={Webhook} tone="info" />
-        <StatCard label="Verification" value={provider ? titleizeToken(provider.isVerified ? 'verified' : 'pending') : 'Pending'} hint="Current provider verification posture" icon={MailCheck} />
+        <StatCard label="Verification" value={provider ? titleizeToken(provider.isVerified ? 'verified' : 'pending') : 'Pending'} hint="Provider verification status" icon={MailCheck} />
       </StatGrid>
 
       <Tabs defaultValue="profile" className="space-y-5">
@@ -332,14 +332,14 @@ export function ProviderAccounts() {
         <TabsContent value="profile">
           <SectionCard
             title="Provider profile"
-            description="Public-facing and operational contact details used across partner management."
+            description="Public contact details for partner management."
             action={
               <Button onClick={() => void profileMutation.mutateAsync()} loading={profileMutation.isPending}>
                 Save profile
               </Button>
             }
           >
-            <FormSection title="Core identity" description="These details define how the provider is presented operationally and commercially.">
+            <FormSection title="Core identity" description="How the provider appears across the platform.">
               <FieldGrid>
                 <TextField label="Name" value={profileForm.name} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} />
                 <TextField label="Slug" value={profileForm.slug} onChange={(event) => setProfileForm((current) => ({ ...current, slug: event.target.value }))} />
@@ -357,7 +357,7 @@ export function ProviderAccounts() {
         <TabsContent value="settlement">
           <SectionCard
             title="Settlement settings"
-            description="Configure how payout operations and provider notifications should behave."
+            description="Configure payouts and notification preferences."
             action={
               <Button onClick={() => void settingsMutation.mutateAsync()} loading={settingsMutation.isPending}>
                 Save settings
@@ -365,7 +365,7 @@ export function ProviderAccounts() {
             }
           >
             <div className="space-y-6">
-              <FormSection title="Commercial settings" description="These values control how settlement batches and payout automation behave.">
+              <FormSection title="Commercial settings" description="Controls settlement and payout automation.">
                 <FieldGrid>
                   <TextField label="Settlement delay days" type="number" value={settingsForm.settlementDelayDays} onChange={(event) => setSettingsForm((current) => ({ ...current, settlementDelayDays: event.target.value }))} />
                   <TextField label="Commission bps" type="number" value={settingsForm.commissionBps} onChange={(event) => setSettingsForm((current) => ({ ...current, commissionBps: event.target.value }))} />
@@ -373,9 +373,9 @@ export function ProviderAccounts() {
               </FormSection>
 
               <div className="grid gap-4 lg:grid-cols-3">
-                <SwitchField label="Auto-approve payouts" description="Allow eligible payouts to progress without manual approval." checked={settingsForm.autoApprovePayout} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, autoApprovePayout: value }))} />
-                <SwitchField label="Notify on booking" description="Send provider-facing notifications when bookings are created or updated." checked={settingsForm.notifyOnBooking} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, notifyOnBooking: value }))} />
-                <SwitchField label="Notify on payout" description="Send provider-facing notifications when payout status changes." checked={settingsForm.notifyOnPayout} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, notifyOnPayout: value }))} />
+                <SwitchField label="Auto-approve payouts" description="Skip manual approval for eligible payouts." checked={settingsForm.autoApprovePayout} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, autoApprovePayout: value }))} />
+                <SwitchField label="Notify on booking" description="Notify on booking create/update." checked={settingsForm.notifyOnBooking} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, notifyOnBooking: value }))} />
+                <SwitchField label="Notify on payout" description="Notify on payout status changes." checked={settingsForm.notifyOnPayout} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, notifyOnPayout: value }))} />
               </div>
             </div>
           </SectionCard>
@@ -384,7 +384,7 @@ export function ProviderAccounts() {
         <TabsContent value="payouts">
           <SectionCard
             title="Payout accounts"
-            description="Register the destinations used for provider settlement disbursements."
+            description="Register payout destinations for settlements."
             action={
               <Button variant="outline" onClick={() => void payoutAccountMutation.mutateAsync()} loading={payoutAccountMutation.isPending}>
                 Add payout account
@@ -409,11 +409,11 @@ export function ProviderAccounts() {
                   </div>
                 ))}
                 {(payoutAccounts as any[]).length === 0 && (
-                  <EmptyBlock title="No payout accounts configured" description="Add at least one payout destination to enable provider settlement requests." />
+                  <EmptyBlock title="No payout accounts configured" description="Add a payout destination to enable settlements." />
                 )}
               </div>
 
-              <FormSection title="Add account" description="Capture the destination details used by your payout processor.">
+              <FormSection title="Add account" description="Destination details for your payout processor.">
                 <FieldGrid>
                   <Field label="Account type">
                     <Select value={payoutAccountForm.accountType} onValueChange={(value) => setPayoutAccountForm((current) => ({ ...current, accountType: value as PayoutAccountForm['accountType'] }))}>
@@ -431,7 +431,7 @@ export function ProviderAccounts() {
                   <TextField label="Country" value={payoutAccountForm.countryCode} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} />
                   <TextField label="Currency" value={payoutAccountForm.currencyCode} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} />
                 </FieldGrid>
-                <SwitchField label="Use as default payout route" description="Set this account as the default destination for payout requests." checked={payoutAccountForm.isDefault} onCheckedChange={(value) => setPayoutAccountForm((current) => ({ ...current, isDefault: value }))} />
+                <SwitchField label="Use as default payout route" description="Use as default payout destination." checked={payoutAccountForm.isDefault} onCheckedChange={(value) => setPayoutAccountForm((current) => ({ ...current, isDefault: value }))} />
               </FormSection>
             </div>
           </SectionCard>
@@ -440,7 +440,7 @@ export function ProviderAccounts() {
         <TabsContent value="webhooks">
           <SectionCard
             title="Webhooks and integrations"
-            description="Manage outbound callbacks for booking, payment, refund, and payout events."
+            description="Manage outbound event callbacks."
             action={
               <Button variant="outline" onClick={() => void subscriptionMutation.mutateAsync()} loading={subscriptionMutation.isPending}>
                 Create webhook subscription
@@ -480,11 +480,11 @@ export function ProviderAccounts() {
                   </div>
                 ))}
                 {(subscriptions as any[]).length === 0 && (
-                  <EmptyBlock title="No webhook subscriptions configured" description="Create a subscription to send operational events into your internal systems." />
+                  <EmptyBlock title="No webhook subscriptions configured" description="Create a subscription to push events to your systems." />
                 )}
               </div>
 
-              <FormSection title="Create subscription" description="Choose the callback destination and event coverage for the integration.">
+              <FormSection title="Create subscription" description="Set callback URL and event coverage.">
                 <FieldGrid>
                   <TextField label="Callback URL" className="md:col-span-2" value={subscriptionForm.url} onChange={(event) => setSubscriptionForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://partner.example/webhooks/felix" />
                   <TextField label="Max retries" type="number" value={subscriptionForm.maxRetries} onChange={(event) => setSubscriptionForm((current) => ({ ...current, maxRetries: event.target.value }))} />

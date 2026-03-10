@@ -114,3 +114,35 @@ export const refundItems = sqliteTable(
   },
   (t) => ({ refundIdx: index('refund_items_refund_idx').on(t.refundId) })
 );
+
+// ── Payment Splits ────────────────────────────────────────────────────────────
+// Supports split payments: a single booking can be paid via multiple methods.
+// Each split is a separate Tingg checkout that contributes to the total.
+export const paymentSplits = sqliteTable(
+  'payment_splits',
+  {
+    id: text('id').primaryKey(),
+    paymentId: text('payment_id').notNull().references(() => payments.id, { onDelete: 'cascade' }),
+    splitIndex: integer('split_index').notNull(),
+    method: text('method', {
+      enum: ['mpesa', 'card', 'bank_transfer', 'ussd', 'wallet'],
+    }).notNull(),
+    amount: integer('amount').notNull(),
+    currencyCode: text('currency_code').notNull(),
+    status: text('status', {
+      enum: ['pending', 'processing', 'succeeded', 'failed'],
+    }).notNull().default('pending'),
+    tinggCheckoutRequestId: text('tingg_checkout_request_id'),
+    tinggMerchantTxId: text('tingg_merchant_tx_id'),
+    accountNumber: text('account_number').notNull(),
+    paidAt: text('paid_at'),
+    failureReason: text('failure_reason'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    paymentIdx: index('payment_splits_payment_idx').on(t.paymentId),
+    statusIdx: index('payment_splits_status_idx').on(t.status),
+    merchantIdx: uniqueIndex('payment_splits_merchant_idx').on(t.tinggMerchantTxId),
+  })
+);

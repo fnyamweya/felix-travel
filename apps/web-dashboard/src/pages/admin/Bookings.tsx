@@ -95,20 +95,20 @@ export function AdminBookings() {
     <PageShell>
       <PageHeader
         eyebrow="Admin"
-        title="Booking operations"
-        description="Monitor booking throughput, exceptions, and charge detail across all providers and customers."
+        title="Bookings"
+        description="Monitor bookings, charges, and exceptions."
       />
 
       <StatGrid>
-        <StatCard label="Total bookings" value={total} hint="All-time booking count in the working set" icon={BookOpenCheck} />
-        <StatCard label="Active" value={confirmed} hint="Confirmed or paid bookings" icon={TicketCheck} tone="success" />
-        <StatCard label="Pending payment" value={pending} hint="Awaiting customer payment" icon={CalendarRange} tone="warning" />
-        <StatCard label="Cancelled" value={cancelled} hint="Cancelled or refunded" icon={TicketX} tone="info" />
+        <StatCard label="Total" value={total} icon={BookOpenCheck} />
+        <StatCard label="Active" value={confirmed} icon={TicketCheck} tone="success" />
+        <StatCard label="Pending" value={pending} icon={CalendarRange} tone="warning" />
+        <StatCard label="Cancelled" value={cancelled} icon={TicketX} tone="info" />
       </StatGrid>
 
       <WorkspaceGrid
         main={
-          <SectionCard title="All bookings" description="Click any row to inspect booking detail and attached charge lines.">
+          <SectionCard title="All bookings">
             <Toolbar>
               <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
                 <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
@@ -165,7 +165,7 @@ export function AdminBookings() {
                 {/* ── Detail tab ── */}
                 <TabsContent value="detail">
                   <div className="space-y-6 pt-4">
-                    <SectionCard title="Booking detail" description={`Reference ${selected.reference}`}>
+                    <SectionCard title="Booking detail" description={selected.reference}>
                       <InfoGrid>
                         <InfoCard label="Status" value={<BookingStatusBadge status={selected.status} />} />
                         <InfoCard label="Service date" value={formatDate(selected.serviceDate)} />
@@ -187,7 +187,7 @@ export function AdminBookings() {
                     </SectionCard>
 
                     {canConfirm && (
-                      <SectionCard title="Admin actions" description="Force-confirm this booking.">
+                      <SectionCard title="Actions">
                         <Button
                           className="w-full"
                           disabled={confirmMutation.isPending}
@@ -199,7 +199,7 @@ export function AdminBookings() {
                       </SectionCard>
                     )}
 
-                    <SectionCard title="Charge lines" description="Fees and taxes computed for this booking.">
+                    <SectionCard title="Charge lines">
                       {chargeLines && Array.isArray(chargeLines) && chargeLines.length > 0 ? (
                         <DataTable headers={['Charge', 'Type', 'Amount']}>
                           {chargeLines.map((cl: any, i: number) => (
@@ -220,7 +220,7 @@ export function AdminBookings() {
                 {/* ── History tab ── */}
                 <TabsContent value="history">
                   <div className="pt-4">
-                    <SectionCard title="Status history" description="Transitions for this booking.">
+                    <SectionCard title="Status history">
                       {history.length > 0 ? (
                         <div className="space-y-3">
                           {history.map((h: any, i: number) => (
@@ -253,7 +253,7 @@ export function AdminBookings() {
                 {/* ── Overrides tab ── */}
                 <TabsContent value="overrides">
                   <div className="space-y-6 pt-4">
-                    <SectionCard title="Charge overrides" description="Per-booking charge adjustments.">
+                    <SectionCard title="Charge overrides">
                       {overrides.length > 0 ? (
                         <DataTable headers={['Charge', 'Override', 'Status', '']}>
                           {overrides.map((o: any) => (
@@ -293,7 +293,7 @@ export function AdminBookings() {
                       )}
                     </SectionCard>
 
-                    <SectionCard title="New override" description="Create a charge override for this booking.">
+                    <SectionCard title="New override">
                       <div className="space-y-3">
                         <Input
                           placeholder="Charge definition ID"
@@ -333,9 +333,9 @@ export function AdminBookings() {
               </Tabs>
             </div>
           ) : (
-            <SectionCard title="Detail" description="Select a booking to inspect its detail and charge lines.">
-              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                <BookOpenCheck className="mr-2 h-5 w-5 opacity-40" /> Click a row to view detail
+            <SectionCard title="Detail">
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                <BookOpenCheck className="mr-2 h-4 w-4 opacity-40" /> Select a booking
               </div>
             </SectionCard>
           )

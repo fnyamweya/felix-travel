@@ -16,7 +16,7 @@ import { createDbClient } from '@felix-travel/db';
 import { PaymentService } from '../../services/payment.service.js';
 import { success } from '../../lib/response.js';
 import { ValidationError } from '../../lib/errors.js';
-import { initiateCheckoutSchema } from '@felix-travel/validation';
+import { initiateCheckoutSchema, initiateSplitCheckoutSchema } from '@felix-travel/validation';
 
 type HonoEnv = {
     Bindings: Env;
@@ -62,3 +62,20 @@ paymentRoutes.get('/:paymentId', async (c) => {
     const payment = await svc.getPaymentStatus(paymentId, session);
     return c.json(success(payment));
 });
+
+paymentRoutes.post(
+    '/checkout/split',
+    idempotency(),
+    rateLimit({ limit: 10, windowSeconds: 60 }),
+    async (c) => {
+        const session = c.get('session');
+        const body = await c.req.json();
+        const parsed = initiateSplitCheckoutSchema.safeParse(body);
+        if (!parsed.success) {
+            throw new ValidationError('Invalid input', { issues: parsed.error.flatten().fieldErrors });
+        }
+        const svc = getPaymentService(c);
+        const result = await svc.initiateSplitCheckout(parsed.data.bookingId, session, parsed.data.splits);
+        return c.json(success(result), 201);
+    }
+);

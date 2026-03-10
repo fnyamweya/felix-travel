@@ -34,6 +34,9 @@ webhookRoutes.post(
     async (c) => {
         const payload = await c.req.json<Record<string, unknown>>();
         const svc = getPaymentService(c);
+        // Try split webhook first; falls through to regular if not a split
+        const splitResult = await svc.processSplitWebhook(payload);
+        if (splitResult !== null) return c.json(success(splitResult));
         const result = await svc.processCheckoutWebhook(payload);
         return c.json(success(result));
     }

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BellRing, Blocks, Building2, CreditCard, TrendingUp, Wallet } from 'lucide-react';
+import { BellRing, CreditCard, TrendingUp, Wallet } from 'lucide-react';
 import { BookingStatusBadge, Badge } from '@felix-travel/ui';
 import { apiClient } from '../../lib/api-client.js';
 import { formatDate, formatMoney, titleizeToken } from '../../lib/admin-utils.js';
@@ -9,7 +9,6 @@ import {
   EntityCell,
   HeroPanel,
   InfoCard,
-  InfoGrid,
   PageShell,
   QuickActionCard,
   SectionCard,
@@ -58,57 +57,42 @@ export function AdminDashboard() {
   return (
     <PageShell>
       <HeroPanel
-        title="Marketplace command center"
-        description="Watch bookings, settlement queues, and commercial exceptions from one control surface, then step directly into the domain that needs intervention."
+        title="Command center"
+        description="Bookings, settlements, and charge governance at a glance."
         actions={
           <>
-            <ActionButtonLink to="/admin/charges/simulate" variant="secondary">Run charge simulation</ActionButtonLink>
-            <ActionButtonLink to="/admin/audit" variant="outline">Open audit log</ActionButtonLink>
+            <ActionButtonLink to="/admin/charges/simulate" variant="secondary">Charge simulator</ActionButtonLink>
+            <ActionButtonLink to="/admin/audit" variant="outline">Audit log</ActionButtonLink>
           </>
         }
         spotlight={
           <div className="space-y-4">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Today’s operating view</div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoCard label="Revenue-carrying bookings" value={<span className="text-white">{paidBookings}</span>} />
-              <InfoCard label="Items awaiting finance action" value={<span className="text-white">{pendingPayouts + pendingRefunds}</span>} />
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Today</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <InfoCard label="Active bookings" value={<span className="text-white">{paidBookings}</span>} />
+              <InfoCard label="Pending actions" value={<span className="text-white">{pendingPayouts + pendingRefunds}</span>} />
             </div>
           </div>
         }
       />
 
       <StatGrid>
-        <StatCard label="Bookings" value={totalBookings} hint={`${paidBookings} active bookings moving revenue`} icon={TrendingUp} />
-        <StatCard label="Commission earned" value={formatMoney(commissionEarned)} hint="Platform commission across the current working set" icon={Wallet} tone="info" />
-        <StatCard label="Pending payouts" value={pendingPayouts} hint="Settlement batches waiting on review or release" icon={CreditCard} tone="warning" />
-        <StatCard label="Pending refunds" value={pendingRefunds} hint="Refund requests still requiring intervention" icon={BellRing} tone="warning" />
+        <StatCard label="Bookings" value={totalBookings} hint={`${paidBookings} active`} icon={TrendingUp} />
+        <StatCard label="Commission" value={formatMoney(commissionEarned)} icon={Wallet} tone="info" />
+        <StatCard label="Pending payouts" value={pendingPayouts} icon={CreditCard} tone="warning" />
+        <StatCard label="Pending refunds" value={pendingRefunds} icon={BellRing} tone="warning" />
       </StatGrid>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <QuickActionCard
-          title="Access review"
-          description="Invite operators, attach provider roles, and disable risky accounts without leaving the workspace."
-          to="/admin/customers"
-        />
-        <QuickActionCard
-          title="Provider setup"
-          description="Onboard partners with cleaner market and reserve visibility before bookings hit production."
-          to="/admin/providers"
-        />
-        <QuickActionCard
-          title="Charge governance"
-          description="Control pricing logic through structured definitions, rules, and dependencies."
-          to="/admin/charges"
-        />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <QuickActionCard title="Customers" description="Manage operators, invites, and accounts." to="/admin/customers" />
+        <QuickActionCard title="Providers" description="Onboard and manage provider partners." to="/admin/providers" />
+        <QuickActionCard title="Charges" description="Definitions, rules, and pricing logic." to="/admin/charges" />
       </div>
 
       <WorkspaceGrid
         main={
-          <SectionCard
-            title="Recent bookings"
-            description="A working ledger of the most recent bookings, including service dates, totals, and live booking state."
-          >
-            <DataTable headers={['Reference', 'Service date', 'Total', 'Commission', 'Status']}>
+          <SectionCard title="Recent bookings">
+            <DataTable headers={['Reference', 'Date', 'Total', 'Commission', 'Status']}>
               {(bookings?.bookings ?? []).slice(0, 8).map((booking: any) => (
                 <tr key={booking.id} className="border-b border-border/60">
                   <td className="p-4">
@@ -120,40 +104,25 @@ export function AdminDashboard() {
                   <td className="p-4"><BookingStatusBadge status={booking.status} /></td>
                 </tr>
               ))}
-              {(bookings?.bookings ?? []).length === 0 && <DataTableEmpty colSpan={5} label="No bookings available." />}
+              {(bookings?.bookings ?? []).length === 0 && <DataTableEmpty colSpan={5} label="No bookings yet." />}
             </DataTable>
           </SectionCard>
         }
         side={
-          <div className="space-y-6">
-            <SectionCard
-              title="Queue watch"
-              description="The next finance and operations items that should be reviewed."
-            >
-              <div className="space-y-3">
+          <div className="space-y-5">
+            <SectionCard title="Queue">
+              <div className="space-y-2">
                 {queueItems.map((item) => (
-                  <div key={`${item.type}-${item.id}`} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">{item.type} {item.id.slice(-8)}</div>
-                        <div className="mt-1 text-sm text-muted-foreground">{item.value}</div>
-                      </div>
-                      <Badge variant={item.type === 'Refund' ? 'warning' : 'info'}>{item.label}</Badge>
+                  <div key={`${item.type}-${item.id}`} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 p-3">
+                    <div>
+                      <div className="text-sm font-medium">{item.type} {item.id.slice(-8)}</div>
+                      <div className="text-xs text-muted-foreground">{item.value}</div>
                     </div>
+                    <Badge variant={item.type === 'Refund' ? 'warning' : 'info'}>{item.label}</Badge>
                   </div>
                 ))}
-                {queueItems.length === 0 && <div className="text-sm text-muted-foreground">No payout or refund activity to surface right now.</div>}
+                {queueItems.length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">No pending items.</p>}
               </div>
-            </SectionCard>
-
-            <SectionCard
-              title="Coverage"
-              description="Quick operational anchors for the core control domains."
-            >
-              <InfoGrid>
-                <InfoCard label="Access" value={<span className="inline-flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Operators and roles</span>} />
-                <InfoCard label="Charges" value={<span className="inline-flex items-center gap-2"><Blocks className="h-4 w-4 text-primary" /> Structured pricing logic</span>} />
-              </InfoGrid>
             </SectionCard>
           </div>
         }

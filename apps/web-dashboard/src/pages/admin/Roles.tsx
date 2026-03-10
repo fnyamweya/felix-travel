@@ -134,7 +134,7 @@ export function AdminRoles() {
             <PageHeader
                 eyebrow="Access control"
                 title="Roles & Permissions"
-                description="Manage the RBAC matrix — roles, capabilities, and permission assignments."
+                description="Manage roles, capabilities, and permissions."
             />
 
             {(message || errorMsg) && (
@@ -160,7 +160,7 @@ export function AdminRoles() {
                         main={
                             <SectionCard
                                 title="Role catalog"
-                                description="Select a role to view and manage its permission set."
+                                description="Select a role to manage its permissions."
                                 action={<SearchField value={search} onChange={setSearch} placeholder="Search roles" />}
                             >
                                 <DataTable headers={['Role', 'Slug', 'Flags', 'Created']}>
@@ -247,8 +247,8 @@ export function AdminRoles() {
                                     </div>
                                 </SectionCard>
                             ) : (
-                                <SectionCard title="Role detail" description="Select a role from the catalog to manage its permissions.">
-                                    <EmptyBlock title="No role selected" description="Click on a role to see its details and permissions." />
+                                <SectionCard title="Role detail" description="Select a role from the catalog to manage permissions.">
+                                    <EmptyBlock title="No role selected" description="Click a role to see details and permissions." />
                                 </SectionCard>
                             )
                         }
@@ -259,7 +259,7 @@ export function AdminRoles() {
                 <TabsContent value="permissions">
                     <SectionCard
                         title="Permission catalog"
-                        description="All defined capabilities, grouped by functional area."
+                        description="All capabilities grouped by functional area."
                         action={<SearchField value={search} onChange={setSearch} placeholder="Search permissions" />}
                     >
                         <DataTable headers={['Permission', 'Code', 'Group', 'Description']}>

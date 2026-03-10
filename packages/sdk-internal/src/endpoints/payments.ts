@@ -6,6 +6,25 @@ export function paymentEndpoints(client: FelixApiClient) {
     initiateCheckout: (body: { bookingId: string; MSISDN?: string; paymentOptionCode?: string }, idempotencyKey: string) =>
       client.post<Payment>('/v1/payments/checkout', body, idempotencyKey),
 
+    initiateSplitCheckout: (
+      body: {
+        bookingId: string;
+        splits: Array<{
+          method: string;
+          amount: number;
+          accountNumber: string;
+          MSISDN?: string;
+          paymentOptionCode?: string;
+        }>;
+      },
+      idempotencyKey: string,
+    ) =>
+      client.post<{ paymentId: string; splits: Array<{ splitIndex: number; splitId: string; checkoutURL?: string; status: string }> }>(
+        '/v1/payments/checkout/split',
+        body,
+        idempotencyKey,
+      ),
+
     initiateCharge: (body: { paymentId: string; MSISDN: string; paymentOptionCode: string }, idempotencyKey: string) =>
       client.post<Payment>('/v1/payments/charge', body, idempotencyKey),
 

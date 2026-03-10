@@ -68,7 +68,7 @@ export function ProviderPayouts() {
       <PageShell>
         <EmptyBlock
           title="No provider context is attached to this account."
-          description="Assign a provider profile to this user before using provider payout operations."
+          description="Assign a provider to use payout operations."
         />
       </PageShell>
     );
@@ -86,7 +86,7 @@ export function ProviderPayouts() {
       <PageHeader
         eyebrow="Provider payouts"
         title="Payouts and settlement requests"
-        description="Review prior disbursements, inspect deductions, and trigger new payout requests once eligible bookings are ready for settlement."
+        description="Review disbursements, deductions, and request new payouts."
         actions={
           <Button
             onClick={() => void requestPayoutMutation.mutateAsync()}
@@ -103,7 +103,7 @@ export function ProviderPayouts() {
       ) : null}
 
       <StatGrid>
-        <StatCard label="Pending batches" value={pendingCount} hint="Payouts still moving through approval or processing" icon={Clock3} tone="warning" />
+        <StatCard label="Pending batches" value={pendingCount} hint="In approval or processing" icon={Clock3} tone="warning" />
         <StatCard label="Settled value" value={formatMoney(settledValue, payoutItems[0]?.currencyCode ?? 'KES')} hint="Completed payout volume" icon={HandCoins} tone="success" />
         <StatCard label="On hold" value={heldCount} hint="Batches awaiting manual approval" icon={ShieldAlert} tone="warning" />
         <StatCard
@@ -118,7 +118,7 @@ export function ProviderPayouts() {
         main={
           <SectionCard
             title="Payout history"
-            description="Select a payout batch to review status, references, and payout-side deductions."
+            description="Select a batch to review status and deductions."
           >
             <DataTable headers={['Batch', 'Amount', 'Status', 'Processed', 'Reference']}>
               {payoutItems.map((payout: any) => (
@@ -147,12 +147,12 @@ export function ProviderPayouts() {
         side={
           <SectionCard
             title="Selected payout"
-            description="Review processing details and deductions for the active batch."
+            description="Processing details for the selected batch."
           >
             {!selectedPayout ? (
               <EmptyBlock
                 title="Select a payout"
-                description="Choose a payout batch from the history table to inspect processing and deduction details."
+                description="Choose a batch to inspect details."
               />
             ) : (
               <div className="space-y-5">
@@ -178,7 +178,7 @@ export function ProviderPayouts() {
                   {(chargeLines ?? []).length === 0 && (
                     <EmptyBlock
                       title="No payout deductions recorded"
-                      description="This batch does not currently have payout charge lines attached."
+                      description="No charge lines attached to this batch."
                     />
                   )}
                 </div>

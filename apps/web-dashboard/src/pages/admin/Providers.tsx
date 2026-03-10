@@ -177,7 +177,7 @@ export function AdminProviders() {
       <PageHeader
         eyebrow="Provider domain"
         title="Provider management"
-        description="Create provider records, keep commercial details current, and track reserve and market coverage through a cleaner admin workspace."
+        description="Create and manage provider records, reserves, and coverage."
         actions={
           <>
             <Button
@@ -205,16 +205,16 @@ export function AdminProviders() {
 
       <StatGrid>
         <StatCard label="Total providers" value={providers.length} hint={`${activeProviders} active in the marketplace`} icon={Building2} />
-        <StatCard label="Verified" value={verifiedProviders} hint="Operational providers with verified status" icon={ShieldCheck} tone="success" />
-        <StatCard label="Reserve exposure" value={formatMoney(reserveExposure)} hint="Outstanding reserve balances across providers" icon={Landmark} tone="warning" />
-        <StatCard label="Country coverage" value={coverage} hint="Distinct country codes in the provider base" icon={Globe2} tone="info" />
+        <StatCard label="Verified" value={verifiedProviders} hint="Verified and active" icon={ShieldCheck} tone="success" />
+        <StatCard label="Reserve exposure" value={formatMoney(reserveExposure)} hint="Total outstanding reserves" icon={Landmark} tone="warning" />
+        <StatCard label="Country coverage" value={coverage} hint="Distinct countries served" icon={Globe2} tone="info" />
       </StatGrid>
 
       <WorkspaceGrid
         main={
           <SectionCard
             title="Provider directory"
-            description="Search by name, slug, email, or market and then open the provider record you want to manage."
+            description="Search and select a provider to manage."
             action={<SearchField value={search} onChange={setSearch} placeholder="Search providers" />}
           >
             <DataTable headers={['Provider', 'Market', 'Status', 'Reserve', 'Updated']}>
@@ -251,7 +251,7 @@ export function AdminProviders() {
         side={
           <SectionCard
             title={selectedProvider && !isCreating ? 'Edit provider' : 'Create provider'}
-            description="Provider records are validated against the shared schema before any update is sent to the API."
+            description="Fields are validated before saving."
           >
             <div className="space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
@@ -282,7 +282,7 @@ export function AdminProviders() {
               ) : (
                 <EmptyBlock
                   title="Create a new provider"
-                  description="Complete the commercial and contact details, then create the provider record."
+                  description="Fill in the details and create the provider."
                 />
               )}
             </div>

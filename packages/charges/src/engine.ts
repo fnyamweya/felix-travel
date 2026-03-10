@@ -6,6 +6,7 @@ import type {
   ChargeRuleSetRow,
   ChargeRuleRow,
   ChargeDependencyRow,
+  ChargeAssignmentRow,
   TieredRateConfig,
   RuleCondition,
   CustomerBreakdown,
@@ -198,6 +199,40 @@ function categorizeSide(def: ChargeDefinitionRow): { customer: boolean; provider
   return { customer, provider };
 }
 
+// ─── Assignment resolution ────────────────────────────────────────────────────
+
+/**
+ * Selects the highest-priority active assignment that matches the current context.
+ * Matching logic: platform always matches, provider matches if ctx.providerId
+ * equals targetId, listing_category matches by ctx.listingCategory, booking by
+ * ctx.bookingId, customer by ctx.customerId (when extended).
+ */
+function resolveAssignment(
+  assignments: ChargeAssignmentRow[],
+  ctx: ChargeCalculationContext,
+): ChargeAssignmentRow | null {
+  for (const a of assignments) {
+    switch (a.targetType) {
+      case 'platform':
+        return a;
+      case 'provider':
+        if (a.targetId && ctx.providerId === a.targetId) return a;
+        break;
+      case 'listing_category':
+        if (a.targetId && ctx.listingCategory === a.targetId) return a;
+        break;
+      case 'booking':
+        if (a.targetId && ctx.bookingId === a.targetId) return a;
+        break;
+      case 'customer':
+        // Future-proofed: extend ChargeCalculationContext with customerId
+        if (a.targetId && (ctx as any).customerId === a.targetId) return a;
+        break;
+    }
+  }
+  return null;
+}
+
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
 export interface EngineInput {
@@ -207,6 +242,8 @@ export interface EngineInput {
   /** All rules for the above rule sets */
   rules: ChargeRuleRow[];
   dependencies: ChargeDependencyRow[];
+  /** Charge assignments — entity-level overrides (provider, booking, customer, etc.) */
+  assignments?: ChargeAssignmentRow[];
   /** Reference date for effectiveFrom/To checks (ISO 8601 date, defaults to today) */
   referenceDate?: string;
 }
@@ -257,9 +294,33 @@ export function calculateCharges(input: EngineInput): {
   const computedAmounts = new Map<string, number>(); // chargeDefinitionId → computedAmount
   const appliedRules: Array<{ chargeCode: string; ruleSetId: string; ruleId: string; matchedConditions: string[] }> = [];
 
+  // Index assignments by definition (sorted by priority desc — highest wins)
+  const assignmentsByDef = new Map<string, ChargeAssignmentRow[]>();
+  if (input.assignments) {
+    for (const a of input.assignments) {
+      if (!a.isActive) continue;
+      if (a.effectiveFrom > refDate) continue;
+      if (a.effectiveTo !== null && a.effectiveTo < refDate) continue;
+      const arr = assignmentsByDef.get(a.chargeDefinitionId) ?? [];
+      arr.push(a);
+      assignmentsByDef.set(a.chargeDefinitionId, arr);
+    }
+    for (const [k, v] of assignmentsByDef) {
+      assignmentsByDef.set(k, v.sort((a, b) => b.priority - a.priority));
+    }
+  }
+
   // Step 3: Calculate each definition in order
   for (const def of orderedDefinitions) {
     if (excluded.has(def.id)) continue;
+
+    // Check if the best-matching assignment waives this charge entirely
+    const defAssignments = assignmentsByDef.get(def.id) ?? [];
+    const bestAssignment = resolveAssignment(defAssignments, input.context);
+    if (bestAssignment?.isWaived) {
+      computedAmounts.set(def.id, 0);
+      continue;
+    }
 
     // Select rule set
     const candidateRuleSets = ruleSetsByDef.get(def.id) ?? [];
@@ -275,14 +336,30 @@ export function calculateCharges(input: EngineInput): {
     let baseAmount: number;
     const baseOfId = baseOf.get(def.id);
     if (baseOfId) {
-      // Use the computed amount from the charge this depends on
       baseAmount = computedAmounts.get(baseOfId) ?? 0;
     } else {
       baseAmount = computeBaseAmount(def, input.context, computedAmounts);
     }
 
-    // Compute the charge amount
-    const chargeAmount = applyRule(baseAmount, rule);
+    // Compute charge: if assignment provides overrides, use those; else use rule
+    let chargeAmount: number;
+    let effectiveRateBps = rule.rateBps;
+    let effectiveFixedAmount = rule.fixedAmount;
+
+    if (bestAssignment) {
+      if (bestAssignment.overrideFixedAmount !== null && bestAssignment.overrideFixedAmount !== undefined) {
+        chargeAmount = bestAssignment.overrideFixedAmount;
+        effectiveFixedAmount = bestAssignment.overrideFixedAmount;
+      } else if (bestAssignment.overrideRateBps !== null && bestAssignment.overrideRateBps !== undefined) {
+        chargeAmount = Math.round((baseAmount * bestAssignment.overrideRateBps) / 10_000);
+        effectiveRateBps = bestAssignment.overrideRateBps;
+      } else {
+        chargeAmount = applyRule(baseAmount, rule);
+      }
+    } else {
+      chargeAmount = applyRule(baseAmount, rule);
+    }
+
     computedAmounts.set(def.id, chargeAmount);
 
     // Determine which sides this charge applies to
@@ -297,8 +374,8 @@ export function calculateCharges(input: EngineInput): {
       payer: def.payer,
       beneficiary: def.beneficiary,
       baseAmount,
-      ...(rule.rateBps !== null && rule.rateBps !== undefined && { rateBps: rule.rateBps }),
-      ...(rule.fixedAmount !== null && rule.fixedAmount !== undefined && { fixedAmount: rule.fixedAmount }),
+      ...(effectiveRateBps !== null && effectiveRateBps !== undefined && { rateBps: effectiveRateBps }),
+      ...(effectiveFixedAmount !== null && effectiveFixedAmount !== undefined && { fixedAmount: effectiveFixedAmount }),
       chargeAmount,
       currencyCode: input.context.currencyCode,
       isInclusive: rule.isInclusive,

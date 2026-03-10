@@ -75,7 +75,7 @@ export function ProviderDashboard() {
       <PageShell>
         <EmptyBlock
           title="No provider context is attached to this account."
-          description="Assign a provider profile to this user before using provider operations."
+          description="Assign a provider to access operations."
         />
       </PageShell>
     );
@@ -104,7 +104,7 @@ export function ProviderDashboard() {
     <PageShell>
       <HeroPanel
         title={provider?.name ?? 'Provider portal'}
-        description="Run bookings, listings, payout readiness, and finance exports from a single professional workspace built for day-to-day provider operations."
+        description="Manage bookings, listings, payouts, and finance from one workspace."
         actions={
           <>
             <ActionButtonLink to="/provider/listings" variant="secondary">Manage listings</ActionButtonLink>
@@ -130,22 +130,22 @@ export function ProviderDashboard() {
 
       <StatGrid>
         <StatCard label="Gross booked" value={formatMoney(grossBooked, provider?.currencyCode ?? 'KES')} hint={`${bookings.length} bookings in the current working set`} icon={CircleDollarSign} />
-        <StatCard label="Upcoming services" value={upcomingBookings} hint="Paid or confirmed bookings awaiting fulfilment" icon={CalendarClock} tone="info" />
+        <StatCard label="Upcoming services" value={upcomingBookings} hint="Bookings awaiting fulfilment" icon={CalendarClock} tone="info" />
         <StatCard label="Pending settlement" value={formatMoney(pendingPayoutValue, provider?.currencyCode ?? 'KES')} hint="Payout batches not yet completed" icon={HandCoins} tone="warning" />
         <StatCard label="Settled" value={formatMoney(settledValue, provider?.currencyCode ?? 'KES')} hint="Payouts already processed successfully" icon={WalletCards} tone="success" />
       </StatGrid>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <QuickActionCard title="Manage listings" description="Create inventory, adjust pricing, and publish polished bookable experiences." to="/provider/listings" />
-        <QuickActionCard title="Generate statements" description="Export booking and payout activity into clean settlement statements for finance." to="/provider/settlement" />
-        <QuickActionCard title="Manage accounts" description="Keep payout routes, settlement preferences, and webhook integrations current." to="/provider/accounts" />
+        <QuickActionCard title="Manage listings" description="Manage inventory, pricing, and bookable experiences." to="/provider/listings" />
+        <QuickActionCard title="Generate statements" description="Export booking and payout statements." to="/provider/settlement" />
+        <QuickActionCard title="Manage accounts" description="Manage payout routes, settings, and webhooks." to="/provider/accounts" />
       </div>
 
       <WorkspaceGrid
         main={
           <SectionCard
             title="Operational pulse"
-            description="Recent bookings, service dates, and revenue activity across the provider account."
+            description="Recent bookings and revenue activity."
           >
             <DataTable headers={['Booking', 'Service date', 'Total', 'Status']}>
               {bookings.slice(0, 8).map((booking: any) => (
@@ -166,7 +166,7 @@ export function ProviderDashboard() {
           <div className="space-y-6">
             <SectionCard
               title="Readiness"
-              description="The main setup items that affect bookings, settlement, and operational scale."
+              description="Key setup items for bookings and settlement."
             >
               <InfoGrid>
                 <InfoCard label="Listing health" value={<span className="inline-flex items-center gap-2"><ListChecks className="h-4 w-4 text-primary" /> {activeListings} active / {draftListings} in setup</span>} />
@@ -178,7 +178,7 @@ export function ProviderDashboard() {
 
             <SectionCard
               title="Operational state"
-              description="Current account posture for provider activation and payouts."
+              description="Provider activation and payout status."
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/35 px-4 py-3">

@@ -129,7 +129,7 @@ export function AdminLedger() {
             <PageHeader
                 eyebrow="Finance"
                 title="General Ledger"
-                description="Chart of accounts, balances, and journal entry lines — platform-wide and per provider."
+                description="Accounts, balances, and journal entries across providers."
             />
 
             <StatGrid>
@@ -149,7 +149,7 @@ export function AdminLedger() {
                 <TabsContent value="chart">
                     <SectionCard
                         title="Chart of accounts"
-                        description="All ledger accounts. Filter by provider scope or search by code/name."
+                        description="Filter by provider or search by code/name."
                         action={
                             <div className="flex items-center gap-3">
                                 <div className="w-56">
@@ -195,7 +195,7 @@ export function AdminLedger() {
                 {/* ═══ TAB 2: Journal Entries ═══ */}
                 <TabsContent value="journal">
                     {!selectedAccountCode ? (
-                        <EmptyBlock title="Select an account" description="Go to the Chart of Accounts tab and click an account to view its journal entries." />
+                        <EmptyBlock title="Select an account" description="Select an account from the Chart of Accounts tab." />
                     ) : (
                         <WorkspaceGrid
                             main={

@@ -526,7 +526,7 @@ export function AdminCharges() {
       <PageHeader
         eyebrow="Charge domain"
         title="Charge studio"
-        description="Manage charge definitions, rule sets, executable rules, and cross-charge dependencies."
+        description="Manage definitions, rule sets, rules, and dependencies."
         actions={
           <>
             <Button variant="outline" onClick={() => {
@@ -566,7 +566,7 @@ export function AdminCharges() {
             main={
               <SectionCard
                 title="Definition catalog"
-                description="Select a charge family to inspect or edit its configuration."
+                description="Select a charge to view or edit its config."
                 action={<SearchField value={search} onChange={setSearch} placeholder="Search definitions" />}
               >
                 <DataTable headers={['Definition', 'Category', 'Scope', 'Payer', 'Ledger DR / CR', 'Status']}>
@@ -754,7 +754,7 @@ export function AdminCharges() {
         {/* ═══════════════ TAB 2: Rule Sets & Rules ═══════════════ */}
         <TabsContent value="rules">
           {!selectedDefinition ? (
-            <EmptyBlock title="Select a definition first" description="Go to the Definitions tab and select a charge definition to manage its rule sets and rules." />
+            <EmptyBlock title="Select a definition first" description="Select a definition from the Definitions tab first." />
           ) : (
             <div className="grid gap-6 xl:grid-cols-2">
               {/* Rule Sets */}
@@ -1010,7 +1010,7 @@ export function AdminCharges() {
         {/* ═══════════════ TAB 3: Dependencies ═══════════════ */}
         <TabsContent value="dependencies">
           {!selectedDefinition ? (
-            <EmptyBlock title="Select a definition first" description="Go to the Definitions tab and select a charge definition to manage dependencies." />
+            <EmptyBlock title="Select a definition first" description="Select a definition from the Definitions tab." />
           ) : (
             <WorkspaceGrid
               main={

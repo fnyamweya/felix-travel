@@ -141,7 +141,7 @@ export function AdminCustomers() {
       <PageHeader
         eyebrow="Access domain"
         title="Access management"
-        description="Manage operational users from one place: invite teammates, attach provider access, and suspend accounts that should not transact."
+        description="Invite, manage, and suspend user accounts."
       />
 
       {(message || errorMessage) ? (
@@ -149,17 +149,17 @@ export function AdminCustomers() {
       ) : null}
 
       <StatGrid>
-        <StatCard label="Users" value={users.length} hint={`${accessUsers} operational users across admin, agent, and provider roles`} icon={Users} />
-        <StatCard label="Disabled" value={disabledUsers} hint="Accounts currently blocked from signing in" icon={ShieldOff} tone="warning" />
-        <StatCard label="Provider users" value={providerUsers} hint="Users attached to provider-side operations" icon={ShieldPlus} tone="info" />
-        <StatCard label="Providers" value={providers.length} hint="Available provider contexts for assignments and invites" icon={KeyRound} />
+        <StatCard label="Users" value={users.length} hint={`${accessUsers} with operational roles`} icon={Users} />
+        <StatCard label="Disabled" value={disabledUsers} hint="Blocked from sign-in" icon={ShieldOff} tone="warning" />
+        <StatCard label="Provider users" value={providerUsers} hint="Linked to a provider" icon={ShieldPlus} tone="info" />
+        <StatCard label="Providers" value={providers.length} hint="Available for assignment" icon={KeyRound} />
       </StatGrid>
 
       <WorkspaceGrid
         main={
           <SectionCard
             title="User roster"
-            description="Filter operational accounts by state, then select one to manage access or account state."
+            description="Filter accounts by state, then select one to manage."
             action={
               <div className="flex flex-wrap gap-3">
                 <SearchField value={query} onChange={setQuery} placeholder="Search email, role, phone, or ID" />
@@ -250,11 +250,11 @@ export function AdminCustomers() {
 
             <SectionCard
               title="Selected user"
-              description="Assign another role or change account state for the active user."
+              description="Manage role or account state for the selected user."
               action={selectedUser ? <Badge variant="info">{titleizeToken(selectedUser.role)}</Badge> : null}
             >
               {!selectedUser ? (
-                <EmptyBlock title="Pick a user from the roster" description="Choose a user to manage their role, provider context, or account state." />
+                <EmptyBlock title="Pick a user from the roster" description="Select a user to manage roles and account state." />
               ) : (
                 <div className="space-y-5">
                   <InfoGrid>

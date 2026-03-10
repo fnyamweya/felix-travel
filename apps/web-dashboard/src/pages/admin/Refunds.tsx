@@ -64,7 +64,7 @@ export function AdminRefunds() {
       <PageHeader
         eyebrow="Admin"
         title="Refund operations"
-        description="Review, approve and reject refund requests across all providers."
+        description="Manage refund requests across providers."
       />
 
       <StatGrid>
@@ -76,7 +76,7 @@ export function AdminRefunds() {
 
       <WorkspaceGrid
         main={
-          <SectionCard title="All refunds" description="Click any row to inspect refund detail and charge reversals.">
+          <SectionCard title="All refunds" description="Select a row to view refund details.">
             <Toolbar>
               <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
                 <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>

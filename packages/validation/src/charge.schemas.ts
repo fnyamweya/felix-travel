@@ -191,3 +191,32 @@ export const createTaxCodeSchema = z.object({
   effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
+
+// ── Charge Assignments ───────────────────────────────────────────────────────
+
+export const chargeAssignmentTargetTypeSchema = z.enum([
+  'platform',
+  'provider',
+  'listing_category',
+  'booking',
+  'customer',
+]);
+
+export const createChargeAssignmentSchema = z.object({
+  chargeDefinitionId: z.string().min(1),
+  targetType: chargeAssignmentTargetTypeSchema,
+  targetId: z.string().optional(),
+  overrideCalcMethod: z.string().optional(),
+  overrideRateBps: z.number().int().min(0).max(10_000).optional(),
+  overrideFixedAmount: z.number().int().nonnegative().optional(),
+  isWaived: z.boolean().optional(),
+  priority: z.number().int().min(0).max(100).optional(),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  reason: z.string().max(500).optional(),
+});
+
+export const updateChargeAssignmentSchema = createChargeAssignmentSchema
+  .omit({ chargeDefinitionId: true, targetType: true, targetId: true })
+  .extend({ isActive: z.boolean().optional() })
+  .partial();

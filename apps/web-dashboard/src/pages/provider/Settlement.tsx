@@ -73,7 +73,7 @@ export function ProviderSettlement() {
       <PageShell>
         <EmptyBlock
           title="No provider context is attached to this account."
-          description="Assign a provider profile to this user before generating settlement statements."
+          description="Assign a provider to generate statements."
         />
       </PageShell>
     );
@@ -106,7 +106,7 @@ export function ProviderSettlement() {
       <PageHeader
         eyebrow="Provider statements"
         title="Settlement statements"
-        description="Generate clean commercial and payout statements for any operating period, then export the underlying activity for reconciliation."
+        description="Generate and export settlement statements for any period."
         actions={
           <>
             <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="w-[180px]" />
@@ -159,7 +159,7 @@ export function ProviderSettlement() {
         main={
           <SectionCard
             title="Statement source bookings"
-            description="The booking ledger that drives the commercial side of the statement."
+            description="Bookings driving the commercial statement."
           >
             <DataTable headers={['Reference', 'Service date', 'Total', 'Commission', 'Status']}>
               {filteredBookings.map((booking: any) => (
@@ -180,7 +180,7 @@ export function ProviderSettlement() {
         side={
           <SectionCard
             title="Statement source payouts"
-            description="Disbursement-side activity that completes the settlement picture."
+            description="Payout activity completing the settlement view."
           >
             <div className="space-y-3">
               {filteredPayouts.map((payout: any) => (

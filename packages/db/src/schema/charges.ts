@@ -343,3 +343,50 @@ export const chargeAllocationLines = sqliteTable(
     ledgerIdx: index('charge_allocation_lines_ledger_idx').on(t.ledgerEntryId),
   })
 );
+
+// ── Charge Assignments ────────────────────────────────────────────────────────
+// Flexible mapping that links a charge definition to any target entity:
+//   platform  → applies globally
+//   provider  → applies to a specific provider (targetId = serviceProviders.id)
+//   listing_category → applies to a listing category (targetId = category slug)
+//   booking   → one-off override for a single booking (targetId = bookings.id)
+//   customer  → special rates for a customer (targetId = users.id)
+// The engine resolves assignments from most-specific to least-specific, allowing
+// per-provider or per-booking charges to override platform defaults.
+export const chargeAssignments = sqliteTable(
+  'charge_assignments',
+  {
+    id: text('id').primaryKey(),
+    chargeDefinitionId: text('charge_definition_id').notNull().references(() => chargeDefinitions.id),
+    targetType: text('target_type', {
+      enum: ['platform', 'provider', 'listing_category', 'booking', 'customer'],
+    }).notNull(),
+    /** ID of the target entity (provider id, booking id, etc.). null for platform-wide. */
+    targetId: text('target_id'),
+    /** Override the definition's calc method for this assignment */
+    overrideCalcMethod: text('override_calc_method', {
+      enum: ['fixed', 'percentage', 'percentage_of_charge', 'tiered_percentage', 'formula', 'minimum_capped', 'maximum_capped', 'inclusive_tax', 'exclusive_tax'],
+    }),
+    /** Override rate in basis points */
+    overrideRateBps: integer('override_rate_bps'),
+    /** Override fixed amount */
+    overrideFixedAmount: integer('override_fixed_amount'),
+    /** Whether this charge is waived for the target */
+    isWaived: integer('is_waived', { mode: 'boolean' }).notNull().default(false),
+    /** Higher priority wins (platform=0, provider=10, category=20, booking=30, customer=40) */
+    priority: integer('priority').notNull().default(0),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    effectiveFrom: text('effective_from').notNull().default(sql`(datetime('now'))`),
+    effectiveTo: text('effective_to'),
+    reason: text('reason'),
+    createdBy: text('created_by').notNull().references(() => users.id),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    definitionIdx: index('charge_assignments_definition_idx').on(t.chargeDefinitionId),
+    targetIdx: index('charge_assignments_target_idx').on(t.targetType, t.targetId),
+    activeIdx: index('charge_assignments_active_idx').on(t.isActive),
+    uniqueAssignment: uniqueIndex('charge_assignments_unique_idx').on(t.chargeDefinitionId, t.targetType, t.targetId),
+  })
+);

@@ -26,9 +26,10 @@ export class ChargeService {
     }
 
     const defIds = definitions.map((d) => d.id);
-    const [ruleSets, dependencies] = await Promise.all([
+    const [ruleSets, dependencies, assignments] = await Promise.all([
       this.repo.findRuleSetsForDefinitions(defIds),
       this.repo.findDependencies(defIds),
+      this.repo.findAssignmentsForDefinitions(defIds),
     ]);
     const ruleSetIds = ruleSets.map((rs) => rs.id);
     const rules = await this.repo.findRulesForSets(ruleSetIds);
@@ -39,6 +40,7 @@ export class ChargeService {
       ruleSets,
       rules,
       dependencies,
+      assignments,
     });
 
     return { breakdown, appliedRules };

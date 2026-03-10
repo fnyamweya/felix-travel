@@ -24,6 +24,8 @@ export type {
   ChargeRuleSetRow,
   ChargeRuleRow,
   ChargeDependencyRow,
+  ChargeAssignmentRow,
+  ChargeAssignmentTargetType,
   BookingChargeLineRow,
 } from './types.js';
 
@@ -37,6 +39,7 @@ export {
   CHARGE_PAYERS,
   CHARGE_BENEFICIARIES,
   DEPENDENCY_TYPES,
+  CHARGE_ASSIGNMENT_TARGET_TYPES,
 } from './types.js';
 
 // Engine

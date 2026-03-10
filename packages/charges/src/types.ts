@@ -43,7 +43,29 @@ export type ChargeBeneficiary = (typeof CHARGE_BENEFICIARIES)[number];
 export const DEPENDENCY_TYPES = ['base_of', 'after', 'exclusive'] as const;
 export type DependencyType = (typeof DEPENDENCY_TYPES)[number];
 
+export const CHARGE_ASSIGNMENT_TARGET_TYPES = ['platform', 'provider', 'listing_category', 'booking', 'customer'] as const;
+export type ChargeAssignmentTargetType = (typeof CHARGE_ASSIGNMENT_TARGET_TYPES)[number];
+
 // ─── Engine I/O ───────────────────────────────────────────────────────────────
+
+export interface ChargeAssignmentRow {
+  id: string;
+  chargeDefinitionId: string;
+  targetType: ChargeAssignmentTargetType;
+  targetId: string | null;
+  overrideCalcMethod: CalcMethod | null;
+  overrideRateBps: number | null;
+  overrideFixedAmount: number | null;
+  isWaived: boolean;
+  priority: number;
+  isActive: boolean;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  reason: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface TieredRateConfig {
   tiers: Array<{ from: number; to: number | null; rateBps: number }>;

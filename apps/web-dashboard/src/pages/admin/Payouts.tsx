@@ -68,19 +68,19 @@ export function AdminPayouts() {
       <PageHeader
         eyebrow="Admin"
         title="Payout operations"
-        description="Run, approve and monitor provider settlement payouts."
+        description="Manage provider settlement payouts."
       />
 
       <StatGrid>
         <StatCard label="Total payouts" value={total} hint="All-time payout count" icon={Banknote} />
         <StatCard label="Succeeded" value={succeeded} hint="Successfully disbursed" icon={CheckCircle2} tone="success" />
-        <StatCard label="Pending" value={pending} hint="Awaiting approval or processing" icon={Clock} tone="warning" />
-        <StatCard label="Failed" value={failed} hint="Failed disbursement attempts" icon={AlertTriangle} tone="info" />
+        <StatCard label="Pending" value={pending} hint="Awaiting action" icon={Clock} tone="warning" />
+        <StatCard label="Failed" value={failed} hint="Failed attempts" icon={AlertTriangle} tone="info" />
       </StatGrid>
 
       <WorkspaceGrid
         main={
-          <SectionCard title="All payouts" description="Click any row to inspect payout detail and charge deductions.">
+          <SectionCard title="All payouts" description="Select a row to view payout details.">
             <Toolbar>
               <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
                 <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
@@ -168,7 +168,7 @@ export function AdminPayouts() {
               </SectionCard>
             </div>
           ) : (
-            <SectionCard title="Detail" description="Select a payout to inspect its detail and charge deductions.">
+            <SectionCard title="Detail" description="Select a payout to view details.">
               <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                 <Banknote className="mr-2 h-5 w-5 opacity-40" /> Click a row to view detail
               </div>

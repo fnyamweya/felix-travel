@@ -12,12 +12,14 @@ import {
   refundChargeLines,
   payoutChargeLines,
   chargeAllocationLines,
+  chargeAssignments,
 } from '@felix-travel/db';
 import type {
   ChargeDefinitionRow,
   ChargeRuleSetRow,
   ChargeRuleRow,
   ChargeDependencyRow,
+  ChargeAssignmentRow,
   ChargeScope,
   ChargeTiming,
 } from './types.js';
@@ -265,5 +267,44 @@ export class ChargesRepository {
       .from(chargeAllocationLines)
       .where(eq(chargeAllocationLines.status, 'pending'))
       .limit(limit);
+  }
+
+  // ── Charge Assignments ────────────────────────────────────────────────────
+
+  async findAssignmentsForDefinitions(definitionIds: string[]): Promise<ChargeAssignmentRow[]> {
+    if (definitionIds.length === 0) return [];
+    return this.db
+      .select()
+      .from(chargeAssignments)
+      .where(and(
+        inArray(chargeAssignments.chargeDefinitionId, definitionIds),
+        eq(chargeAssignments.isActive, true),
+      )) as Promise<ChargeAssignmentRow[]>;
+  }
+
+  async findAssignmentsByTarget(targetType: string, targetId?: string): Promise<ChargeAssignmentRow[]> {
+    const conditions = [
+      eq(chargeAssignments.targetType, targetType as any),
+      eq(chargeAssignments.isActive, true),
+    ];
+    if (targetId) conditions.push(eq(chargeAssignments.targetId, targetId));
+    return this.db
+      .select()
+      .from(chargeAssignments)
+      .where(and(...conditions)) as Promise<ChargeAssignmentRow[]>;
+  }
+
+  async insertAssignment(data: typeof chargeAssignments.$inferInsert) {
+    const [row] = await this.db.insert(chargeAssignments).values(data).returning();
+    if (!row) throw new Error('chargeAssignments insert returned no rows');
+    return row;
+  }
+
+  async updateAssignment(id: string, data: Partial<typeof chargeAssignments.$inferInsert>): Promise<void> {
+    await this.db.update(chargeAssignments).set(data).where(eq(chargeAssignments.id, id));
+  }
+
+  async deleteAssignment(id: string): Promise<void> {
+    await this.db.update(chargeAssignments).set({ isActive: false }).where(eq(chargeAssignments.id, id));
   }
 }

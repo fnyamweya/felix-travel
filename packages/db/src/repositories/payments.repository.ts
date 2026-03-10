@@ -1,6 +1,6 @@
 import { eq, desc, inArray } from 'drizzle-orm';
 import type { DbClient } from '../client.js';
-import { payments, paymentAttempts, paymentWebhooks, refunds, refundItems } from '../schema/index.js';
+import { payments, paymentAttempts, paymentWebhooks, paymentSplits, refunds, refundItems } from '../schema/index.js';
 
 export class PaymentsRepository {
   constructor(private readonly db: DbClient) { }
@@ -104,5 +104,32 @@ export class PaymentsRepository {
       where: eq(refundItems.refundId, refundId),
       orderBy: [desc(refundItems.createdAt)],
     });
+  }
+
+  // ── Payment Splits ──────────────────────────────────────────────────────────
+
+  async createSplit(data: typeof paymentSplits.$inferInsert) {
+    const [split] = await this.db.insert(paymentSplits).values(data).returning();
+    if (!split) throw new Error('PaymentSplit insert returned no rows');
+    return split;
+  }
+
+  async findSplitsByPaymentId(paymentId: string) {
+    return this.db.select().from(paymentSplits).where(eq(paymentSplits.paymentId, paymentId));
+  }
+
+  async findSplitByMerchantTxId(merchantTxId: string) {
+    return this.db.query.paymentSplits.findFirst({
+      where: eq(paymentSplits.tinggMerchantTxId, merchantTxId),
+    });
+  }
+
+  async updateSplit(id: string, data: Partial<typeof paymentSplits.$inferInsert>) {
+    const [updated] = await this.db
+      .update(paymentSplits)
+      .set({ ...data, updatedAt: new Date().toISOString() })
+      .where(eq(paymentSplits.id, id))
+      .returning();
+    return updated ?? null;
   }
 }

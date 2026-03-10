@@ -61,7 +61,7 @@ export function ProviderBookings() {
       <PageShell>
         <EmptyBlock
           title="No provider context is attached to this account."
-          description="Assign a provider profile to this user before using provider booking operations."
+          description="Assign a provider to use booking operations."
         />
       </PageShell>
     );
@@ -107,7 +107,7 @@ export function ProviderBookings() {
       <PageHeader
         eyebrow="Provider bookings"
         title="Booking operations"
-        description="Track fulfilment status, upcoming service dates, and the charge lines attached to each booking from one clean operator workspace."
+        description="Track fulfilment, service dates, and charge breakdowns."
         actions={
           <div className="min-w-[200px]">
             <Select value={status} onValueChange={setStatus}>
@@ -131,17 +131,17 @@ export function ProviderBookings() {
       />
 
       <StatGrid>
-        <StatCard label="Bookings" value={bookings.length} hint="All provider-visible bookings in the current result set" icon={CalendarRange} />
-        <StatCard label="Paid" value={paid} hint="Awaiting provider action — accept, hold, or reject" icon={CircleDollarSign} tone="info" />
-        <StatCard label="On hold" value={onHold} hint="Bookings you've placed on hold pending review" icon={Clock} tone="warning" />
-        <StatCard label="Confirmed" value={confirmed} hint="Confirmed service commitments still to be delivered" icon={TicketCheck} tone="success" />
+        <StatCard label="Bookings" value={bookings.length} hint="Provider bookings in current result set" icon={CalendarRange} />
+        <StatCard label="Paid" value={paid} hint="Awaiting accept, hold, or reject" icon={CircleDollarSign} tone="info" />
+        <StatCard label="On hold" value={onHold} hint="Placed on hold pending review" icon={Clock} tone="warning" />
+        <StatCard label="Confirmed" value={confirmed} hint="Confirmed bookings awaiting delivery" icon={TicketCheck} tone="success" />
       </StatGrid>
 
       <WorkspaceGrid
         main={
           <SectionCard
             title="Booking queue"
-            description="Select a booking to inspect totals, guest counts, and the computed charge breakdown."
+            description="Select a booking to inspect totals and charges."
           >
             <DataTable headers={['Reference', 'Service date', 'Guests', 'Total', 'Status']}>
               {filteredBookings.map((booking: any) => (
@@ -171,7 +171,7 @@ export function ProviderBookings() {
             {!selectedBooking ? (
               <EmptyBlock
                 title="Select a booking"
-                description="Choose a booking from the queue to inspect guest, pricing, and charge details."
+                description="Choose a booking to view pricing and charges."
               />
             ) : (
               <div className="space-y-5">
@@ -224,7 +224,7 @@ export function ProviderBookings() {
                   {(chargeLines ?? []).length === 0 && (
                     <EmptyBlock
                       title="No charge lines recorded"
-                      description="This booking does not currently have computed charge lines attached."
+                      description="No charge lines attached to this booking."
                     />
                   )}
                   {(chargeLines ?? []).map((line: any) => (

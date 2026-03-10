@@ -42,7 +42,7 @@ export function AdminAuditLog() {
       <PageHeader
         eyebrow="Admin"
         title="Audit log"
-        description="Immutable timeline of every significant action performed in the system."
+        description="Timeline of all significant system actions."
       />
 
       <WorkspaceGrid

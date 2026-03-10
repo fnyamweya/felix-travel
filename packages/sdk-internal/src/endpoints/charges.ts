@@ -72,5 +72,23 @@ export function chargesEndpoints(client: FelixApiClient) {
     /** List tax codes for a country */
     getTaxCodes: (country: string) =>
       client.get<any[]>(`/v1/charges/tax-codes/${country}`),
+
+    // ── Charge Assignments ──────────────────────────────────────────────────
+
+    /** List charge assignments for a target type */
+    listAssignments: (params: { targetType: string; targetId?: string }) =>
+      client.get<any[]>('/v1/charges/assignments', params),
+
+    /** Create a charge assignment */
+    createAssignment: (body: unknown) =>
+      client.post<any>('/v1/charges/assignments', body),
+
+    /** Update a charge assignment */
+    updateAssignment: (id: string, body: unknown) =>
+      client.patch<any>(`/v1/charges/assignments/${id}`, body),
+
+    /** Delete (deactivate) a charge assignment */
+    deleteAssignment: (id: string) =>
+      client.delete<any>(`/v1/charges/assignments/${id}`),
   };
 }

@@ -79,3 +79,24 @@ export interface RefundItem {
   /** Amount absorbed from platform commission */
   platformDeduction: MinorCurrencyAmount;
 }
+
+// ── Payment Splits ──────────────────────────────────────────────────────────
+
+export type PaymentSplitStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
+
+export interface PaymentSplit {
+  id: string;
+  paymentId: string;
+  splitIndex: number;
+  method: PaymentMethod;
+  amount: MinorCurrencyAmount;
+  currencyCode: string;
+  status: PaymentSplitStatus;
+  tinggCheckoutRequestId: string | null;
+  tinggMerchantTxId: string | null;
+  accountNumber: string | null;
+  paidAt: DateTimeString | null;
+  failureReason: string | null;
+  createdAt: DateTimeString;
+  updatedAt: DateTimeString;
+}
