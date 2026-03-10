@@ -24,6 +24,7 @@ import { adminRoutes } from './routes/v1/admin.routes.js';
 import { healthRoute } from './routes/v1/health.routes.js';
 import { chargeRoutes } from './routes/v1/charge.routes.js';
 import { catalogRoutes } from './routes/v1/catalog.routes.js';
+import { providerRoutes } from './routes/v1/provider.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 type AppEnv = {
@@ -65,6 +66,7 @@ app.route('/api/v1/approvals', approvalRoutes);
 app.route('/api/v1/admin', adminRoutes);
 app.route('/api/v1/charges', chargeRoutes);
 app.route('/api/v1/catalog', catalogRoutes);
+app.route('/api/v1/providers', providerRoutes);
 
 // ─── 404 fallthrough ────────────────────────────────────────────
 app.notFound((c) =>

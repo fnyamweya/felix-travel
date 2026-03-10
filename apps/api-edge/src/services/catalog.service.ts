@@ -1,5 +1,6 @@
 import { CatalogRepository, createDbClient } from '@felix-travel/db';
-import type { Listing, Destination, AvailabilitySlot, PaginationMeta } from '@felix-travel/types';
+import type { Listing, Destination, AvailabilitySlot, ListingCategory, PaginationMeta } from '@felix-travel/types';
+import { newId } from '../lib/id.js';
 import { NotFoundError } from '../lib/errors.js';
 
 export class CatalogService {
@@ -20,6 +21,17 @@ export class CatalogService {
             description: d.description ?? null,
             imageUrl: d.imageUrl ?? null,
             isActive: d.isActive,
+        }));
+    }
+
+    async getListingCategories(): Promise<ListingCategory[]> {
+        const rows = await this.repo.findAllListingCategories();
+        return rows.map((category) => ({
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            parentId: category.parentId ?? null,
+            iconUrl: category.iconUrl ?? null,
         }));
     }
 
@@ -64,6 +76,144 @@ export class CatalogService {
         const row = await this.repo.findListingById(id) ?? await this.repo.findListingBySlug(id);
         if (!row) throw new NotFoundError('Listing', id);
         return this.enrichListing(row);
+    }
+
+    async getProviderListings(providerId: string): Promise<Listing[]> {
+        const rows = await this.repo.findListingsByProvider(providerId);
+        return Promise.all(rows.map((row) => this.enrichListing(row)));
+    }
+
+    async createProviderListing(providerId: string, data: {
+        categoryId: string;
+        destinationId: string;
+        type: Listing['type'];
+        title: string;
+        slug: string;
+        shortDescription: string;
+        description: string;
+        basePriceAmount: number;
+        currencyCode: string;
+        durationMinutes?: number;
+        maxCapacity?: number;
+        minGuests?: number;
+        isInstantBooking?: boolean;
+        tags?: string[];
+    }): Promise<Listing> {
+        const listing = await this.repo.createListing({
+            id: newId(),
+            providerId,
+            categoryId: data.categoryId,
+            destinationId: data.destinationId,
+            type: data.type,
+            status: 'draft',
+            title: data.title,
+            slug: data.slug,
+            shortDescription: data.shortDescription,
+            description: data.description,
+            coverImageUrl: null,
+            basePriceAmount: data.basePriceAmount,
+            currencyCode: data.currencyCode,
+            durationMinutes: data.durationMinutes ?? null,
+            maxCapacity: data.maxCapacity ?? null,
+            minGuests: data.minGuests ?? 1,
+            isInstantBooking: data.isInstantBooking ?? false,
+            tags: JSON.stringify(data.tags ?? []),
+            deletedAt: null,
+        });
+        return this.enrichListing(listing);
+    }
+
+    async updateProviderListing(providerId: string, listingId: string, data: Partial<{
+        categoryId: string;
+        destinationId: string;
+        type: Listing['type'];
+        status: Listing['status'];
+        title: string;
+        slug: string;
+        shortDescription: string;
+        description: string;
+        basePriceAmount: number;
+        currencyCode: string;
+        durationMinutes: number;
+        maxCapacity: number;
+        minGuests: number;
+        isInstantBooking: boolean;
+        tags: string[];
+    }>): Promise<Listing> {
+        const existing = await this.repo.findListingById(listingId);
+        if (!existing || existing.providerId !== providerId) throw new NotFoundError('Listing', listingId);
+
+        const updated = await this.repo.updateListing(listingId, {
+            ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+            ...(data.destinationId !== undefined && { destinationId: data.destinationId }),
+            ...(data.type !== undefined && { type: data.type }),
+            ...(data.status !== undefined && { status: data.status }),
+            ...(data.title !== undefined && { title: data.title }),
+            ...(data.slug !== undefined && { slug: data.slug }),
+            ...(data.shortDescription !== undefined && { shortDescription: data.shortDescription }),
+            ...(data.description !== undefined && { description: data.description }),
+            ...(data.basePriceAmount !== undefined && { basePriceAmount: data.basePriceAmount }),
+            ...(data.currencyCode !== undefined && { currencyCode: data.currencyCode }),
+            ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
+            ...(data.maxCapacity !== undefined && { maxCapacity: data.maxCapacity }),
+            ...(data.minGuests !== undefined && { minGuests: data.minGuests }),
+            ...(data.isInstantBooking !== undefined && { isInstantBooking: data.isInstantBooking }),
+            ...(data.tags !== undefined && { tags: JSON.stringify(data.tags) }),
+        });
+
+        if (!updated) throw new NotFoundError('Listing', listingId);
+        return this.enrichListing(updated);
+    }
+
+    async createPricingRuleForListing(providerId: string, listingId: string, data: {
+        name: string;
+        priceAmount: number;
+        currencyCode: string;
+        unitType: 'per_person' | 'per_group' | 'per_night' | 'per_day' | 'per_vehicle' | 'flat';
+        minUnits?: number;
+        maxUnits?: number;
+    }) {
+        const listing = await this.repo.findListingById(listingId);
+        if (!listing || listing.providerId !== providerId) throw new NotFoundError('Listing', listingId);
+
+        return this.repo.createPricingRule({
+            id: newId(),
+            listingId,
+            name: data.name,
+            priceAmount: data.priceAmount,
+            currencyCode: data.currencyCode,
+            unitType: data.unitType,
+            minUnits: data.minUnits ?? 1,
+            maxUnits: data.maxUnits ?? null,
+            isActive: true,
+        });
+    }
+
+    async createBlackoutDateForListing(providerId: string, listingId: string, data: { date: string; reason?: string }) {
+        const listing = await this.repo.findListingById(listingId);
+        if (!listing || listing.providerId !== providerId) throw new NotFoundError('Listing', listingId);
+
+        return this.repo.createBlackoutDate({
+            id: newId(),
+            listingId,
+            date: data.date,
+            reason: data.reason ?? null,
+        });
+    }
+
+    async updateListingInventory(providerId: string, listingId: string, data: { date: string; totalCapacity: number; isAvailable?: boolean }) {
+        const listing = await this.repo.findListingById(listingId);
+        if (!listing || listing.providerId !== providerId) throw new NotFoundError('Listing', listingId);
+
+        return this.repo.upsertInventory({
+            id: newId(),
+            listingId,
+            date: data.date,
+            totalCapacity: data.totalCapacity,
+            bookedCount: 0,
+            remainingCapacity: data.totalCapacity,
+            isAvailable: data.isAvailable ?? true,
+        });
     }
 
     async getAvailability(

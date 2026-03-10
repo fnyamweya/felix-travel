@@ -9,6 +9,7 @@
  * All endpoints require Idempotency-Key header.
  */
 import { Hono } from 'hono';
+import { z } from 'zod';
 import type { Env } from '../../bindings.js';
 import type { SessionContext } from '@felix-travel/types';
 import { requireAuth, idempotency, authorize } from '@felix-travel/auth';
@@ -17,7 +18,10 @@ import { createDbClient } from '@felix-travel/db';
 import { PayoutService } from '../../services/payout.service.js';
 import { success } from '../../lib/response.js';
 import { ValidationError } from '../../lib/errors.js';
-import { runPayoutSchema } from '@felix-travel/validation';
+const requestPayoutSchema = z.object({
+    providerId: z.string().min(1),
+    idempotencyKey: z.string().min(1).max(255),
+});
 
 type HonoEnv = {
     Bindings: Env;
@@ -42,12 +46,12 @@ payoutRoutes.post(
         const session = c.get('session');
         authorize(session, 'payout:run');
         const body = await c.req.json();
-        const parsed = runPayoutSchema.safeParse(body);
+        const parsed = requestPayoutSchema.safeParse(body);
         if (!parsed.success) {
             throw new ValidationError('Invalid input', { issues: parsed.error.flatten().fieldErrors });
         }
         // Provider must only trigger payouts for their own account
-        if (session.role === 'service_provider' && parsed.data.providerId !== session.userId) {
+        if (session.role === 'service_provider' && parsed.data.providerId !== session.providerId) {
             throw new ValidationError('Forbidden: cannot run payout for another provider');
         }
         const svc = getPayoutService(c);

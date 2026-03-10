@@ -15,8 +15,40 @@ export function providerEndpoints(client: FelixApiClient) {
 
     get: (id: string) => client.get<ServiceProvider>(`/v1/providers/${id}`),
 
+    getSettings: (id: string) =>
+      client.get<unknown>(`/v1/providers/${id}/settings`),
+
     updateSettings: (id: string, body: unknown) =>
-      client.patch<ServiceProvider>(`/v1/providers/${id}/settings`, body),
+      client.patch<unknown>(`/v1/providers/${id}/settings`, body),
+
+    getBookings: (providerId: string, params?: { page?: number; pageSize?: number }) =>
+      client.get<{ bookings: unknown[]; meta: PaginationMeta }>(`/v1/providers/${providerId}/bookings`, params),
+
+    getListings: (providerId: string) =>
+      client.get<unknown[]>(`/v1/providers/${providerId}/listings`),
+
+    createListing: (providerId: string, body: unknown) =>
+      client.post<unknown>(`/v1/providers/${providerId}/listings`, body),
+
+    updateListing: (providerId: string, listingId: string, body: unknown) =>
+      client.patch<unknown>(`/v1/providers/${providerId}/listings/${listingId}`, body),
+
+    getListingManagement: (providerId: string, listingId: string) =>
+      client.get<{
+        listing: unknown;
+        pricingRules: unknown[];
+        blackouts: unknown[];
+        inventory: unknown[];
+      }>(`/v1/providers/${providerId}/listings/${listingId}/management`),
+
+    createPricingRule: (providerId: string, listingId: string, body: unknown) =>
+      client.post<unknown>(`/v1/providers/${providerId}/listings/${listingId}/pricing-rules`, body),
+
+    createBlackoutDate: (providerId: string, listingId: string, body: unknown) =>
+      client.post<unknown>(`/v1/providers/${providerId}/listings/${listingId}/blackout-dates`, body),
+
+    updateInventory: (providerId: string, listingId: string, body: unknown) =>
+      client.post<unknown>(`/v1/providers/${providerId}/listings/${listingId}/inventory`, body),
 
     getPayoutAccounts: (providerId: string) =>
       client.get<ProviderPayoutAccount[]>(`/v1/providers/${providerId}/payout-accounts`),

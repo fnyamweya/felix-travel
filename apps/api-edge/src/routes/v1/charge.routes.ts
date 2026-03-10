@@ -34,7 +34,8 @@
 import { Hono } from 'hono';
 import type { Env } from '../../bindings.js';
 import type { SessionContext } from '@felix-travel/types';
-import { requireAuth } from '@felix-travel/auth';
+import { requireAuth, assertProviderOwnership } from '@felix-travel/auth';
+import { createDbClient, BookingsRepository, PayoutsRepository } from '@felix-travel/db';
 import { ChargeService } from '../../services/charge.service.js';
 import { success } from '../../lib/response.js';
 import { AppError, ValidationError } from '../../lib/errors.js';
@@ -65,6 +66,30 @@ function requireAdminOrAgent(session: SessionContext) {
   if (session.role !== 'admin' && session.role !== 'agent') {
     throw new AppError('FORBIDDEN', 'Forbidden', 403);
   }
+}
+
+async function requireAdminAgentOrProviderBookingAccess(env: Env, session: SessionContext, bookingId: string) {
+  if (session.role === 'admin' || session.role === 'agent') return;
+  if (session.role !== 'service_provider') {
+    throw new AppError('FORBIDDEN', 'Forbidden', 403);
+  }
+
+  const repo = new BookingsRepository(createDbClient(env.DB));
+  const booking = await repo.findById(bookingId);
+  if (!booking) throw new AppError('NOT_FOUND', 'Booking not found', 404);
+  assertProviderOwnership(session, booking.providerId);
+}
+
+async function requireAdminAgentOrProviderPayoutAccess(env: Env, session: SessionContext, payoutId: string) {
+  if (session.role === 'admin' || session.role === 'agent') return;
+  if (session.role !== 'service_provider') {
+    throw new AppError('FORBIDDEN', 'Forbidden', 403);
+  }
+
+  const repo = new PayoutsRepository(createDbClient(env.DB));
+  const payout = await repo.findById(payoutId);
+  if (!payout) throw new AppError('NOT_FOUND', 'Payout not found', 404);
+  assertProviderOwnership(session, payout.providerId);
 }
 
 function requireAdmin(session: SessionContext) {
@@ -212,7 +237,7 @@ chargeRoutes.post('/simulate', async (c) => {
 
 chargeRoutes.get('/bookings/:bookingId', async (c) => {
   const session = c.get('session');
-  requireAdminOrAgent(session);
+  await requireAdminAgentOrProviderBookingAccess(c.env, session, c.req.param('bookingId'));
   const svc = getSvc(c);
   const lines = await svc.getBookingChargeBreakdown(c.req.param('bookingId'));
   return c.json(success(lines));
@@ -221,7 +246,7 @@ chargeRoutes.get('/bookings/:bookingId', async (c) => {
 // ── Payout / Refund Charges ───────────────────────────────────────────────────
 
 chargeRoutes.get('/payouts/:payoutId', async (c) => {
-  requireAdminOrAgent(c.get('session'));
+  await requireAdminAgentOrProviderPayoutAccess(c.env, c.get('session'), c.req.param('payoutId'));
   const svc = getSvc(c);
   const lines = await svc.getPayoutChargeLines(c.req.param('payoutId'));
   return c.json(success(lines));

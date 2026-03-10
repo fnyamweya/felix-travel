@@ -2,6 +2,7 @@
  * Catalog routes — /api/v1/catalog
  *
  * GET  /destinations          List active destinations
+ * GET  /listing-categories    List active listing categories
  * GET  /listings              Search / list active listings
  * GET  /listings/:id          Get single listing by ID or slug
  */
@@ -28,6 +29,12 @@ catalogRoutes.get('/destinations', async (c) => {
     const svc = getCatalogService(c);
     const destinations = await svc.getDestinations();
     return c.json(success(destinations));
+});
+
+catalogRoutes.get('/listing-categories', async (c) => {
+    const svc = getCatalogService(c);
+    const categories = await svc.getListingCategories();
+    return c.json(success(categories));
 });
 
 catalogRoutes.get('/listings', async (c) => {

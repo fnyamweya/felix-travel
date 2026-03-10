@@ -244,7 +244,7 @@ export class PayoutService {
     const payout = await payoutsRepo.findById(payoutId);
     if (!payout) throw new NotFoundError('Payout', payoutId);
 
-    if (actor.role === 'service_provider' && payout.providerId !== actor.userId) {
+    if (actor.role === 'service_provider' && payout.providerId !== actor.providerId) {
       throw new AppError('FORBIDDEN', 'Access denied', 403);
     }
 
@@ -260,7 +260,7 @@ export class PayoutService {
   }) {
     const payoutsRepo = new PayoutsRepository(this.db);
     const providerId =
-      opts.actor.role === 'service_provider' ? opts.actor.userId : opts.providerId;
+      opts.actor.role === 'service_provider' ? opts.actor.providerId ?? undefined : opts.providerId;
 
     if (providerId) {
       return payoutsRepo.findByProvider(

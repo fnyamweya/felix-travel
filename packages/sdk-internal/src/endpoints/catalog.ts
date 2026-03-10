@@ -1,11 +1,14 @@
 import type { FelixApiClient } from '../client.js';
-import type { Destination, Listing, AvailabilitySlot } from '@felix-travel/types';
+import type { Destination, Listing, AvailabilitySlot, ListingCategory } from '@felix-travel/types';
 import type { PaginationMeta } from '@felix-travel/types';
 
 export function catalogEndpoints(client: FelixApiClient) {
   return {
     getDestinations: () =>
       client.get<Destination[]>('/v1/catalog/destinations'),
+
+    getListingCategories: () =>
+      client.get<ListingCategory[]>('/v1/catalog/listing-categories'),
 
     getListings: (params?: { destinationId?: string; type?: string; page?: number; pageSize?: number }) =>
       client.get<{ listings: Listing[]; meta: PaginationMeta }>('/v1/catalog/listings', params),

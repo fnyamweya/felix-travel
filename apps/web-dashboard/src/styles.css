@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 *,
 *::before,
@@ -28,7 +28,7 @@
   --color-sidebar: #111f24;
   --color-sidebar-soft: #1f3a40;
   --font-family: 'IBM Plex Sans', sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
+  --font-display: 'IBM Plex Sans', sans-serif;
   --radius-sm: 12px;
   --radius-md: 20px;
   --radius-lg: 28px;
@@ -525,6 +525,27 @@ tbody tr:hover {
   background: rgba(255, 255, 255, 0.5);
   padding: 0.8rem 0.9rem;
   font-weight: 600;
+}
+
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.choice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(113, 94, 71, 0.16);
+  background: rgba(255, 255, 255, 0.68);
+  font-size: 0.84rem;
+}
+
+.choice-chip input {
+  width: auto;
 }
 
 .toggle-card input {

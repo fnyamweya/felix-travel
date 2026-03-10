@@ -19,6 +19,9 @@ import { AdminChargeSimulator } from './pages/admin/ChargeSimulator.js';
 
 // Provider pages
 import { ProviderDashboard } from './pages/provider/Dashboard.js';
+import { ProviderBookings } from './pages/provider/Bookings.js';
+import { ProviderListings } from './pages/provider/Listings.js';
+import { ProviderAccounts } from './pages/provider/Accounts.js';
 import { ProviderPayouts } from './pages/provider/Payouts.js';
 import { ProviderSettlement } from './pages/provider/Settlement.js';
 
@@ -61,6 +64,9 @@ export function App() {
 
           {/* Provider routes */}
           <Route path="/provider" element={<ProviderDashboard />} />
+          <Route path="/provider/bookings" element={<ProviderBookings />} />
+          <Route path="/provider/listings" element={<ProviderListings />} />
+          <Route path="/provider/accounts" element={<ProviderAccounts />} />
           <Route path="/provider/payouts" element={<ProviderPayouts />} />
           <Route path="/provider/settlement" element={<ProviderSettlement />} />
         </Route>

@@ -59,9 +59,12 @@ export function DashboardLayout() {
         {isProvider && (
           <>
             <div className="sidebar-section">Provider</div>
-            <SidebarLink to="/provider" accent="OV" label="Overview" caption="Bookings and balance overview" />
-            <SidebarLink to="/provider/payouts" accent="PO" label="Payouts" caption="Track upcoming settlements" />
-            <SidebarLink to="/provider/settlement" accent="ST" label="Settlement" caption="Statements and invoice detail" />
+            <SidebarLink to="/provider" accent="OV" label="Overview" caption="Bookings, balances, and readiness" />
+            <SidebarLink to="/provider/bookings" accent="BK" label="Bookings" caption="Track service delivery and status" />
+            <SidebarLink to="/provider/listings" accent="LS" label="Listings" caption="Inventory, pricing, and availability" />
+            <SidebarLink to="/provider/payouts" accent="PO" label="Payouts" caption="Request and review settlements" />
+            <SidebarLink to="/provider/settlement" accent="ST" label="Statements" caption="Generate settlement summaries" />
+            <SidebarLink to="/provider/accounts" accent="AC" label="Accounts" caption="Payout accounts and provider settings" />
           </>
         )}
 

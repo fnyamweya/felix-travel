@@ -3,6 +3,7 @@ import type { DbClient } from '../client.js';
 import {
     listings,
     destinations,
+    listingCategories,
     mediaAssets,
     amenities,
     listingAmenities,
@@ -26,6 +27,13 @@ export class CatalogRepository {
     async findDestinationById(id: string) {
         return this.db.query.destinations.findFirst({
             where: eq(destinations.id, id),
+        });
+    }
+
+    async findAllListingCategories() {
+        return this.db.query.listingCategories.findMany({
+            where: eq(listingCategories.isActive, true),
+            orderBy: [listingCategories.sortOrder, listingCategories.name],
         });
     }
 
@@ -90,6 +98,30 @@ export class CatalogRepository {
         });
     }
 
+    async findListingsByProvider(providerId: string, limit = 100, offset = 0) {
+        return this.db.query.listings.findMany({
+            where: and(eq(listings.providerId, providerId), isNull(listings.deletedAt)),
+            orderBy: [desc(listings.updatedAt)],
+            limit,
+            offset,
+        });
+    }
+
+    async createListing(data: typeof listings.$inferInsert) {
+        const [listing] = await this.db.insert(listings).values(data).returning();
+        if (!listing) throw new Error('Listing insert returned no rows');
+        return listing;
+    }
+
+    async updateListing(id: string, data: Partial<typeof listings.$inferInsert>) {
+        const [updated] = await this.db
+            .update(listings)
+            .set({ ...data, updatedAt: new Date().toISOString() })
+            .where(eq(listings.id, id))
+            .returning();
+        return updated ?? null;
+    }
+
     async findMediaForEntity(entityType: string, entityId: string) {
         return this.db.query.mediaAssets.findMany({
             where: and(eq(mediaAssets.entityType, entityType), eq(mediaAssets.entityId, entityId)),
@@ -110,6 +142,12 @@ export class CatalogRepository {
         return this.db.query.pricingRules.findMany({
             where: and(eq(pricingRules.listingId, listingId), eq(pricingRules.isActive, true)),
         });
+    }
+
+    async createPricingRule(data: typeof pricingRules.$inferInsert) {
+        const [rule] = await this.db.insert(pricingRules).values(data).returning();
+        if (!rule) throw new Error('PricingRule insert returned no rows');
+        return rule;
     }
 
     /* ── Availability ─────────────────────────────────────── */
@@ -133,6 +171,32 @@ export class CatalogRepository {
         return this.db.query.blackoutDates.findMany({
             where: and(...conditions),
             orderBy: [blackoutDates.date],
+        });
+    }
+
+    async createBlackoutDate(data: typeof blackoutDates.$inferInsert) {
+        const [blackout] = await this.db.insert(blackoutDates).values(data).returning();
+        if (!blackout) throw new Error('BlackoutDate insert returned no rows');
+        return blackout;
+    }
+
+    async upsertInventory(data: typeof inventory.$inferInsert) {
+        await this.db
+            .insert(inventory)
+            .values(data)
+            .onConflictDoUpdate({
+                target: [inventory.listingId, inventory.date],
+                set: {
+                    totalCapacity: data.totalCapacity,
+                    bookedCount: data.bookedCount ?? 0,
+                    remainingCapacity: data.remainingCapacity,
+                    isAvailable: data.isAvailable ?? true,
+                    updatedAt: new Date().toISOString(),
+                },
+            });
+
+        return this.db.query.inventory.findFirst({
+            where: and(eq(inventory.listingId, data.listingId), eq(inventory.date, data.date)),
         });
     }
 }

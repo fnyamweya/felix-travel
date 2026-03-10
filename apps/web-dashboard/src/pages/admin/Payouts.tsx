@@ -9,14 +9,20 @@ function formatMoney(amount: number, currency = 'KES') {
 export function AdminPayouts() {
   const qc = useQueryClient();
   const [status, setStatus] = useState('');
+  const [providerId, setProviderId] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-payouts', status],
     queryFn: () => apiClient.admin.listPayouts(status ? { status } : {}),
   });
 
+  const { data: providers = [] } = useQuery({
+    queryKey: ['admin-providers'],
+    queryFn: () => apiClient.providers.list(),
+  });
+
   const runMutation = useMutation({
-    mutationFn: () => apiClient.payouts.runPayout('all', { idempotencyKey: crypto.randomUUID() }),
+    mutationFn: () => apiClient.payouts.runPayout(providerId, { idempotencyKey: crypto.randomUUID() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-payouts'] }),
   });
 
@@ -24,9 +30,17 @@ export function AdminPayouts() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Payouts</h1>
-        <button className="btn-primary" onClick={() => runMutation.mutate()} disabled={runMutation.isPending}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <select value={providerId} onChange={(e) => setProviderId(e.target.value)} style={{ width: 260 }}>
+            <option value="">Select provider</option>
+            {providers.map((provider: any) => (
+              <option key={provider.id} value={provider.id}>{provider.name}</option>
+            ))}
+          </select>
+          <button className="btn-primary" onClick={() => runMutation.mutate()} disabled={runMutation.isPending || !providerId}>
           {runMutation.isPending ? 'Running…' : 'Run Payout Batch'}
-        </button>
+          </button>
+        </div>
       </div>
 
       <div className="card">
