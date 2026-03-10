@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   calcMethodSchema,
@@ -16,8 +15,32 @@ import {
   updateChargeDefinitionSchema,
   updateChargeRuleSchema,
 } from '@felix-travel/validation';
+import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@felix-travel/ui';
+import { Blocks, FileStack, GitBranchPlus, Plus, Scale, Workflow } from 'lucide-react';
 import { apiClient } from '../../lib/api-client.js';
 import { formatDate, getErrorMessage, titleizeToken, toOptionalNumber, toOptionalTrimmed } from '../../lib/admin-utils.js';
+import {
+  ActionButtonLink,
+  DataTable,
+  DataTableEmpty,
+  EmptyBlock,
+  EntityCell,
+  Field,
+  FieldGrid,
+  InfoCard,
+  InfoGrid,
+  Notice,
+  PageHeader,
+  PageShell,
+  SearchField,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  SwitchField,
+  TextField,
+  TextareaField,
+  WorkspaceGrid,
+} from '../../components/workspace-ui.js';
 
 type DefinitionFormState = {
   code: string;
@@ -37,7 +60,10 @@ type DefinitionFormState = {
   ledgerCreditAccountCode: string;
   effectiveFrom: string;
   effectiveTo: string;
-  jurisdictionMetadata: string;
+  jurisdictionCountry: string;
+  jurisdictionRegion: string;
+  jurisdictionTaxCode: string;
+  jurisdictionNotes: string;
   requiresApproval: boolean;
   isEnabled: boolean;
 };
@@ -53,6 +79,18 @@ type RuleSetFormState = {
   priority: string;
 };
 
+type TierRowState = {
+  from: string;
+  to: string;
+  rateBps: string;
+};
+
+type ConditionRowState = {
+  field: 'booking_amount' | 'provider_id' | 'listing_category' | 'country' | 'region' | 'service_date_day_of_week' | 'guest_count';
+  op: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'not_in';
+  value: string;
+};
+
 type RuleFormState = {
   calcMethod: (typeof calcMethodSchema.options)[number];
   rateBps: string;
@@ -61,8 +99,8 @@ type RuleFormState = {
   minAmount: string;
   maxAmount: string;
   formula: string;
-  tieredConfig: string;
-  conditions: string;
+  tiers: TierRowState[];
+  conditions: ConditionRowState[];
   isInclusive: boolean;
   effectiveFrom: string;
   effectiveTo: string;
@@ -83,6 +121,39 @@ type DependencyFormState = {
   dependencyType: 'base_of' | 'after' | 'exclusive';
 };
 
+const CONDITION_FIELD_OPTIONS: ConditionRowState['field'][] = [
+  'booking_amount',
+  'provider_id',
+  'listing_category',
+  'country',
+  'region',
+  'service_date_day_of_week',
+  'guest_count',
+];
+
+const CONDITION_OPERATOR_OPTIONS: ConditionRowState['op'][] = [
+  'eq',
+  'neq',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'in',
+  'not_in',
+];
+
+const EMPTY_TIER_ROW: TierRowState = {
+  from: '0',
+  to: '',
+  rateBps: '',
+};
+
+const EMPTY_CONDITION_ROW: ConditionRowState = {
+  field: 'country',
+  op: 'eq',
+  value: '',
+};
+
 const EMPTY_DEFINITION_FORM: DefinitionFormState = {
   code: '',
   name: '',
@@ -101,7 +172,10 @@ const EMPTY_DEFINITION_FORM: DefinitionFormState = {
   ledgerCreditAccountCode: '',
   effectiveFrom: new Date().toISOString().slice(0, 10),
   effectiveTo: '',
-  jurisdictionMetadata: '',
+  jurisdictionCountry: '',
+  jurisdictionRegion: '',
+  jurisdictionTaxCode: '',
+  jurisdictionNotes: '',
   requiresApproval: false,
   isEnabled: true,
 };
@@ -125,8 +199,8 @@ const EMPTY_RULE_FORM: RuleFormState = {
   minAmount: '',
   maxAmount: '',
   formula: '',
-  tieredConfig: '',
-  conditions: '',
+  tiers: [{ ...EMPTY_TIER_ROW }],
+  conditions: [],
   isInclusive: false,
   effectiveFrom: new Date().toISOString().slice(0, 10),
   effectiveTo: '',
@@ -147,40 +221,27 @@ const EMPTY_DEPENDENCY_FORM: DependencyFormState = {
   dependencyType: 'after',
 };
 
-const CATEGORY_CLASSES: Record<string, string> = {
-  commission: 'badge-info',
-  tax: 'badge-warning',
-  duty: 'badge-warning',
-  fee: 'badge-neutral',
-  levy: 'badge-warning',
-  surcharge: 'badge-neutral',
-  discount: 'badge-success',
-  withholding: 'badge-danger',
-  fx: 'badge-info',
-  adjustment: 'badge-neutral',
-};
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
+function parseJsonRecord(value: string | null | undefined): Record<string, unknown> {
+  if (!value) return {};
+  try {
+    return JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
-function safeJsonParse<T>(value: string, fallbackLabel: string): T | undefined {
-  if (!value.trim()) return undefined;
+function parseJsonArray<T>(value: string | null | undefined): T[] {
+  if (!value) return [];
   try {
-    return JSON.parse(value) as T;
+    const parsed = JSON.parse(value) as T[];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    throw new Error(`Invalid JSON for ${fallbackLabel}.`);
+    return [];
   }
 }
 
 function definitionFormFromRecord(definition: any): DefinitionFormState {
-  const metadata = definition.jurisdictionMetadata ? JSON.stringify(JSON.parse(definition.jurisdictionMetadata), null, 2) : '';
+  const metadata = parseJsonRecord(definition.jurisdictionMetadata);
   return {
     code: definition.code,
     name: definition.name,
@@ -199,7 +260,10 @@ function definitionFormFromRecord(definition: any): DefinitionFormState {
     ledgerCreditAccountCode: definition.ledgerCreditAccountCode ?? '',
     effectiveFrom: definition.effectiveFrom,
     effectiveTo: definition.effectiveTo ?? '',
-    jurisdictionMetadata: metadata,
+    jurisdictionCountry: String(metadata.country ?? ''),
+    jurisdictionRegion: String(metadata.region ?? ''),
+    jurisdictionTaxCode: String(metadata.taxCode ?? ''),
+    jurisdictionNotes: String(metadata.notes ?? ''),
     requiresApproval: Boolean(definition.requiresApproval),
     isEnabled: Boolean(definition.isEnabled),
   };
@@ -215,6 +279,54 @@ function ruleUpdateFormFromRecord(rule: any): RuleUpdateFormState {
     isActive: Boolean(rule.isActive),
     changeReason: '',
   };
+}
+
+function buildJurisdictionMetadata(form: DefinitionFormState) {
+  const metadata: Record<string, unknown> = {};
+  if (form.jurisdictionCountry.trim()) metadata.country = form.jurisdictionCountry.trim().toUpperCase();
+  if (form.jurisdictionRegion.trim()) metadata.region = form.jurisdictionRegion.trim();
+  if (form.jurisdictionTaxCode.trim()) metadata.taxCode = form.jurisdictionTaxCode.trim().toUpperCase();
+  if (form.jurisdictionNotes.trim()) metadata.notes = form.jurisdictionNotes.trim();
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+function isNumericConditionField(field: ConditionRowState['field']) {
+  return field === 'booking_amount' || field === 'guest_count';
+}
+
+function buildConditionValue(condition: ConditionRowState) {
+  if (condition.op === 'in' || condition.op === 'not_in') {
+    return condition.value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (isNumericConditionField(condition.field)) {
+    return Number(condition.value);
+  }
+
+  return condition.value.trim();
+}
+
+function buildTierConfig(tiers: TierRowState[]) {
+  const cleaned = tiers.filter((tier) => tier.rateBps.trim() || tier.to.trim() || tier.from.trim());
+  if (!cleaned.length) return undefined;
+  return {
+    tiers: cleaned.map((tier) => ({
+      from: Number(tier.from || '0'),
+      to: tier.to.trim() ? Number(tier.to) : null,
+      rateBps: Number(tier.rateBps),
+    })),
+  };
+}
+
+function categoryVariant(category: string): 'info' | 'warning' | 'secondary' | 'success' | 'destructive' {
+  if (['commission', 'fx'].includes(category)) return 'info';
+  if (['tax', 'duty', 'levy'].includes(category)) return 'warning';
+  if (category === 'discount') return 'success';
+  if (category === 'withholding') return 'destructive';
+  return 'secondary';
 }
 
 export function AdminCharges() {
@@ -272,10 +384,8 @@ export function AdminCharges() {
   useEffect(() => {
     if (selectedDefinition) {
       setDefinitionForm(definitionFormFromRecord(selectedDefinition));
-      setDependencyForm((current) => ({ ...current, dependsOnChargeId: current.dependsOnChargeId || '' }));
       return;
     }
-
     setDefinitionForm(EMPTY_DEFINITION_FORM);
   }, [selectedDefinition, isCreatingDefinition]);
 
@@ -340,7 +450,7 @@ export function AdminCharges() {
         ledgerCreditAccountCode: toOptionalTrimmed(definitionForm.ledgerCreditAccountCode),
         effectiveFrom: definitionForm.effectiveFrom,
         effectiveTo: toOptionalTrimmed(definitionForm.effectiveTo),
-        jurisdictionMetadata: safeJsonParse<Record<string, unknown>>(definitionForm.jurisdictionMetadata, 'jurisdiction metadata'),
+        jurisdictionMetadata: buildJurisdictionMetadata(definitionForm),
         requiresApproval: definitionForm.requiresApproval,
       };
 
@@ -413,8 +523,14 @@ export function AdminCharges() {
         minAmount: toOptionalNumber(ruleForm.minAmount),
         maxAmount: toOptionalNumber(ruleForm.maxAmount),
         formula: toOptionalTrimmed(ruleForm.formula),
-        tieredConfig: safeJsonParse<Record<string, unknown>>(ruleForm.tieredConfig, 'tiered config'),
-        conditions: safeJsonParse<Record<string, unknown>[]>(ruleForm.conditions, 'conditions'),
+        tieredConfig: buildTierConfig(ruleForm.tiers),
+        conditions: ruleForm.conditions
+          .filter((condition) => condition.value.trim())
+          .map((condition) => ({
+            field: condition.field,
+            op: condition.op,
+            value: buildConditionValue(condition),
+          })),
         isInclusive: ruleForm.isInclusive,
         effectiveFrom: ruleForm.effectiveFrom,
         effectiveTo: toOptionalTrimmed(ruleForm.effectiveTo),
@@ -480,551 +596,525 @@ export function AdminCharges() {
   });
 
   const otherDefinitions = definitions.filter((definition: any) => definition.id !== selectedDefinitionId);
+  const selectedRuleConditions = selectedRule ? parseJsonArray<ConditionRowState>(selectedRule.conditions) : [];
+  const selectedRuleTiers = selectedRule ? parseJsonRecord(selectedRule.tieredConfig) : {};
+  const selectedRuleTierRows = Array.isArray((selectedRuleTiers as any).tiers) ? (selectedRuleTiers as any).tiers as Array<{ from: number; to: number | null; rateBps: number }> : [];
 
   return (
-    <div className="domain-page">
-      <div className="domain-page-header">
-        <div>
-          <span className="eyebrow">Charge domain</span>
-          <h1 className="page-title">Charge studio</h1>
-          <p className="page-subtitle">
-            Manage the charge engine in layers: definitions, rule sets, rate rules, and cross-charge dependencies. The forms mirror the validation schema used by the API.
-          </p>
-        </div>
-        <div className="page-actions">
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setIsCreatingDefinition(true);
-              setSelectedDefinitionId(null);
-              setSelectedRuleSetId(null);
-              setSelectedRuleId(null);
-              setDefinitionForm(EMPTY_DEFINITION_FORM);
-              setRuleSetForm(EMPTY_RULE_SET_FORM);
-              setRuleForm(EMPTY_RULE_FORM);
-              setRuleUpdateForm(EMPTY_RULE_UPDATE_FORM);
-              setDependencyForm(EMPTY_DEPENDENCY_FORM);
-              setMessage('Ready to create a new charge definition.');
-              setErrorMessage(null);
-            }}
+    <PageShell>
+      <PageHeader
+        eyebrow="Charge domain"
+        title="Charge studio"
+        description="Manage the charge engine in structured layers: definitions, rule sets, executable rules, and cross-charge dependencies. The controls below mirror the validation schema without exposing raw JSON inputs."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreatingDefinition(true);
+                setSelectedDefinitionId(null);
+                setSelectedRuleSetId(null);
+                setSelectedRuleId(null);
+                setDefinitionForm(EMPTY_DEFINITION_FORM);
+                setRuleSetForm(EMPTY_RULE_SET_FORM);
+                setRuleForm(EMPTY_RULE_FORM);
+                setRuleUpdateForm(EMPTY_RULE_UPDATE_FORM);
+                setDependencyForm(EMPTY_DEPENDENCY_FORM);
+                setMessage('Ready to create a new charge definition.');
+                setErrorMessage(null);
+              }}
+            >
+              New definition
+            </Button>
+            <ActionButtonLink to="/admin/charges/simulate">Open simulator</ActionButtonLink>
+          </>
+        }
+      />
+
+      {(message || errorMessage) ? (
+        <Notice message={errorMessage ?? message ?? ''} variant={errorMessage ? 'destructive' : 'success'} />
+      ) : null}
+
+      <StatGrid>
+        <StatCard label="Definitions" value={definitions.length} hint={`${enabledDefinitions} currently enabled for new calculations`} icon={Blocks} />
+        <StatCard label="Approval tracked" value={approvalDefinitions} hint="Definitions that require approval for material changes" icon={Scale} tone="warning" />
+        <StatCard label="Rule sets" value={ruleSets.length} hint={selectedDefinition ? `Attached to ${selectedDefinition.code}` : 'Select a definition to inspect coverage'} icon={FileStack} tone="info" />
+        <StatCard label="Scope coverage" value={scopeCoverage} hint="Distinct charge scopes configured in the engine" icon={Workflow} />
+      </StatGrid>
+
+      <WorkspaceGrid
+        main={
+          <SectionCard
+            title="Definition catalog"
+            description="Find a charge family quickly, then inspect its rules and dependencies."
+            action={<SearchField value={search} onChange={setSearch} placeholder="Search definitions" />}
           >
-            New definition
-          </button>
-          <Link to="/admin/charges/simulate">
-            <button className="btn-primary">Open simulator</button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="dashboard-stat-grid">
-        <StatCard label="Definitions" value={definitions.length} hint={`${enabledDefinitions} currently enabled for new calculations`} />
-        <StatCard label="Approval tracked" value={approvalDefinitions} hint="Definitions that require approval for material changes" />
-        <StatCard label="Rule sets" value={ruleSets.length} hint={selectedDefinition ? `Attached to ${selectedDefinition.code}` : 'Select a definition to inspect coverage'} />
-        <StatCard label="Scope coverage" value={scopeCoverage} hint="Distinct charge scopes configured in the engine" />
-      </div>
-
-      {(message || errorMessage) && (
-        <div className={errorMessage ? 'alert-error' : 'alert-success'} style={{ marginBottom: '1rem' }}>
-          {errorMessage ?? message}
-        </div>
-      )}
-
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Definition catalog</h2>
-              <p className="section-copy">Find a charge family quickly, then open its downstream rules and dependencies.</p>
-            </div>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search definitions"
-              className="search-input"
-            />
-          </div>
-
-          <div className="table-container domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Definition</th>
-                  <th>Category</th>
-                  <th>Scope</th>
-                  <th>Payer</th>
-                  <th>Status</th>
+            <DataTable headers={['Definition', 'Category', 'Scope', 'Payer', 'Status']}>
+              {isLoading && <DataTableEmpty colSpan={5} label="Loading definitions..." />}
+              {!isLoading && filteredDefinitions.length === 0 && <DataTableEmpty colSpan={5} label="No definitions match the current search." />}
+              {filteredDefinitions.map((definition: any) => (
+                <tr
+                  key={definition.id}
+                  className={definition.id === selectedDefinitionId ? 'border-b border-border/60 bg-primary/5' : 'border-b border-border/60'}
+                  onClick={() => {
+                    setIsCreatingDefinition(false);
+                    setSelectedDefinitionId(definition.id);
+                  }}
+                >
+                  <td className="cursor-pointer p-4">
+                    <EntityCell title={definition.code} subtitle={definition.name} />
+                  </td>
+                  <td className="p-4"><Badge variant={categoryVariant(definition.category)}>{titleizeToken(definition.category)}</Badge></td>
+                  <td className="p-4 text-sm text-muted-foreground">{titleizeToken(definition.scope)}</td>
+                  <td className="p-4 text-sm text-muted-foreground">{titleizeToken(definition.payer)}</td>
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={definition.isEnabled ? 'success' : 'destructive'}>{definition.isEnabled ? 'Enabled' : 'Disabled'}</Badge>
+                      {definition.requiresApproval ? <Badge variant="warning">Approval</Badge> : null}
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {isLoading && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">Loading definitions...</td>
-                  </tr>
-                )}
-                {!isLoading && filteredDefinitions.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">No definitions match the current search.</td>
-                  </tr>
-                )}
-                {filteredDefinitions.map((definition: any) => (
-                  <tr
-                    key={definition.id}
-                    className={definition.id === selectedDefinitionId ? 'table-row-selected' : ''}
-                    onClick={() => {
-                      setIsCreatingDefinition(false);
-                      setSelectedDefinitionId(definition.id);
-                    }}
-                  >
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{definition.code}</strong>
-                        <span>{definition.name}</span>
-                      </div>
-                    </td>
-                    <td><span className={`badge ${CATEGORY_CLASSES[definition.category] ?? 'badge-neutral'}`}>{titleizeToken(definition.category)}</span></td>
-                    <td>{titleizeToken(definition.scope)}</td>
-                    <td>{titleizeToken(definition.payer)}</td>
-                    <td>
-                      <div className="stack-inline">
-                        <span className={`badge ${definition.isEnabled ? 'badge-success' : 'badge-danger'}`}>
-                          {definition.isEnabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                        {definition.requiresApproval && <span className="badge badge-warning">Approval</span>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              ))}
+            </DataTable>
+          </SectionCard>
+        }
+        side={
+          <SectionCard
+            title={selectedDefinition && !isCreatingDefinition ? 'Edit definition' : 'Create definition'}
+            description="Core identity fields are fixed after creation; lifecycle controls stay editable."
+            action={
+              <Button onClick={() => void definitionMutation.mutateAsync()} loading={definitionMutation.isPending}>
+                {selectedDefinition && !isCreatingDefinition ? 'Save definition' : 'Create definition'}
+              </Button>
+            }
+          >
+            <div className="space-y-6">
+              <FieldGrid>
+                <TextField label="Code" value={definitionForm.code} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="PLATFORM_COMMISSION" />
+                <TextField label="Name" value={definitionForm.name} onChange={(event) => setDefinitionForm((current) => ({ ...current, name: event.target.value }))} placeholder="Platform commission" />
+                <Field label="Category">
+                  <Select value={definitionForm.category} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, category: value as DefinitionFormState['category'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>
+                      {chargeCategorySchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Scope">
+                  <Select value={definitionForm.scope} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, scope: value as DefinitionFormState['scope'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select scope" /></SelectTrigger>
+                    <SelectContent>
+                      {chargeScopeSchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Payer">
+                  <Select value={definitionForm.payer} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, payer: value as DefinitionFormState['payer'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select payer" /></SelectTrigger>
+                    <SelectContent>
+                      {chargePayerSchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Beneficiary">
+                  <Select value={definitionForm.beneficiary} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, beneficiary: value as DefinitionFormState['beneficiary'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select beneficiary" /></SelectTrigger>
+                    <SelectContent>
+                      {chargeBeneficiarySchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Base type">
+                  <Select value={definitionForm.baseType} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, baseType: value as DefinitionFormState['baseType'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select base type" /></SelectTrigger>
+                    <SelectContent>
+                      {chargeBaseTypeSchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Calculation method">
+                  <Select value={definitionForm.calcMethod} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, calcMethod: value as DefinitionFormState['calcMethod'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                    <SelectContent>
+                      {calcMethodSchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <TextField label="Priority" type="number" value={definitionForm.calcPriority} onChange={(event) => setDefinitionForm((current) => ({ ...current, calcPriority: event.target.value }))} />
+                <Field label="Refund behavior">
+                  <Select value={definitionForm.refundBehavior} onValueChange={(value) => setDefinitionForm((current) => ({ ...current, refundBehavior: value as DefinitionFormState['refundBehavior'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select behavior" /></SelectTrigger>
+                    <SelectContent>
+                      {refundBehaviorSchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <TextField label="Effective from" type="date" value={definitionForm.effectiveFrom} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, effectiveFrom: event.target.value }))} />
+                <TextField label="Effective to" type="date" value={definitionForm.effectiveTo} onChange={(event) => setDefinitionForm((current) => ({ ...current, effectiveTo: event.target.value }))} />
+                <TextField label="Debit account" value={definitionForm.ledgerDebitAccountCode} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, ledgerDebitAccountCode: event.target.value }))} placeholder="ACCOUNTS_RECEIVABLE" />
+                <TextField label="Credit account" value={definitionForm.ledgerCreditAccountCode} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, ledgerCreditAccountCode: event.target.value }))} placeholder="COMMISSION_REVENUE" />
+                <TextareaField label="Description" className="md:col-span-2" rows={3} value={definitionForm.description} onChange={(event) => setDefinitionForm((current) => ({ ...current, description: event.target.value }))} placeholder="Describe when this charge applies and why it exists." />
+              </FieldGrid>
 
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">{selectedDefinition && !isCreatingDefinition ? 'Edit definition' : 'Create definition'}</h2>
-              <p className="section-copy">
-                Core calculation identity fields are locked once a definition exists; lifecycle settings remain editable.
-              </p>
+              <FieldGrid>
+                <TextField label="Jurisdiction country" value={definitionForm.jurisdictionCountry} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} maxLength={2} onChange={(event) => setDefinitionForm((current) => ({ ...current, jurisdictionCountry: event.target.value.toUpperCase() }))} placeholder="KE" />
+                <TextField label="Region" value={definitionForm.jurisdictionRegion} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, jurisdictionRegion: event.target.value }))} placeholder="Nairobi" />
+                <TextField label="Tax code" value={definitionForm.jurisdictionTaxCode} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, jurisdictionTaxCode: event.target.value.toUpperCase() }))} placeholder="VAT" />
+                <TextareaField label="Notes" className="md:col-span-2" rows={3} value={definitionForm.jurisdictionNotes} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, jurisdictionNotes: event.target.value }))} placeholder="Describe jurisdiction-specific handling or policy notes." />
+              </FieldGrid>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <SwitchField label="Taxable" description="Flag the charge as tax-bearing for downstream calculations." checked={definitionForm.isTaxable} onCheckedChange={(value) => setDefinitionForm((current) => ({ ...current, isTaxable: value }))} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} />
+                <SwitchField label="Recoverable" description="Allow the charge to be recovered through later finance workflows." checked={definitionForm.isRecoverable} onCheckedChange={(value) => setDefinitionForm((current) => ({ ...current, isRecoverable: value }))} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} />
+                <SwitchField label="Needs approval" description="Track definition changes through an approval-aware workflow." checked={definitionForm.requiresApproval} onCheckedChange={(value) => setDefinitionForm((current) => ({ ...current, requiresApproval: value }))} />
+                <SwitchField label="Enabled" description="Allow the definition to participate in new charge calculations." checked={definitionForm.isEnabled} onCheckedChange={(value) => setDefinitionForm((current) => ({ ...current, isEnabled: value }))} />
+              </div>
+
+              {selectedDefinition && !isCreatingDefinition ? (
+                <InfoGrid>
+                  <InfoCard label="Created" value={formatDate(selectedDefinition.createdAt)} />
+                  <InfoCard label="Updated" value={formatDate(selectedDefinition.updatedAt)} />
+                  <InfoCard label="Scope" value={titleizeToken(selectedDefinition.scope)} />
+                  <InfoCard label="Payer" value={titleizeToken(selectedDefinition.payer)} />
+                </InfoGrid>
+              ) : null}
             </div>
-            {selectedDefinition && !isCreatingDefinition && <span className="badge badge-neutral">ID {selectedDefinition.id.slice(-8)}</span>}
-          </div>
+          </SectionCard>
+        }
+      />
 
-          <div className="form-grid">
-            <label className="field">
-              <span>Code</span>
-              <input value={definitionForm.code} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="PLATFORM_COMMISSION" />
-            </label>
-            <label className="field">
-              <span>Name</span>
-              <input value={definitionForm.name} onChange={(event) => setDefinitionForm((current) => ({ ...current, name: event.target.value }))} placeholder="Platform commission" />
-            </label>
-            <label className="field">
-              <span>Category</span>
-              <select value={definitionForm.category} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, category: event.target.value as DefinitionFormState['category'] }))}>
-                {chargeCategorySchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Scope</span>
-              <select value={definitionForm.scope} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, scope: event.target.value as DefinitionFormState['scope'] }))}>
-                {chargeScopeSchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Payer</span>
-              <select value={definitionForm.payer} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, payer: event.target.value as DefinitionFormState['payer'] }))}>
-                {chargePayerSchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Beneficiary</span>
-              <select value={definitionForm.beneficiary} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, beneficiary: event.target.value as DefinitionFormState['beneficiary'] }))}>
-                {chargeBeneficiarySchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Base type</span>
-              <select value={definitionForm.baseType} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, baseType: event.target.value as DefinitionFormState['baseType'] }))}>
-                {chargeBaseTypeSchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Calculation method</span>
-              <select value={definitionForm.calcMethod} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, calcMethod: event.target.value as DefinitionFormState['calcMethod'] }))}>
-                {calcMethodSchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Priority</span>
-              <input value={definitionForm.calcPriority} onChange={(event) => setDefinitionForm((current) => ({ ...current, calcPriority: event.target.value }))} type="number" />
-            </label>
-            <label className="field">
-              <span>Refund behavior</span>
-              <select value={definitionForm.refundBehavior} onChange={(event) => setDefinitionForm((current) => ({ ...current, refundBehavior: event.target.value as DefinitionFormState['refundBehavior'] }))}>
-                {refundBehaviorSchema.options.map((option) => (
-                  <option key={option} value={option}>{titleizeToken(option)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Effective from</span>
-              <input value={definitionForm.effectiveFrom} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, effectiveFrom: event.target.value }))} type="date" />
-            </label>
-            <label className="field">
-              <span>Effective to</span>
-              <input value={definitionForm.effectiveTo} onChange={(event) => setDefinitionForm((current) => ({ ...current, effectiveTo: event.target.value }))} type="date" />
-            </label>
-            <label className="field">
-              <span>Debit account</span>
-              <input value={definitionForm.ledgerDebitAccountCode} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, ledgerDebitAccountCode: event.target.value }))} placeholder="ACCOUNTS_RECEIVABLE" />
-            </label>
-            <label className="field">
-              <span>Credit account</span>
-              <input value={definitionForm.ledgerCreditAccountCode} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, ledgerCreditAccountCode: event.target.value }))} placeholder="COMMISSION_REVENUE" />
-            </label>
-            <label className="field field-span-2">
-              <span>Description</span>
-              <textarea value={definitionForm.description} rows={3} onChange={(event) => setDefinitionForm((current) => ({ ...current, description: event.target.value }))} placeholder="Describe when this charge applies and why it exists." />
-            </label>
-            <label className="field field-span-2">
-              <span>Jurisdiction metadata JSON</span>
-              <textarea
-                value={definitionForm.jurisdictionMetadata}
-                disabled={Boolean(selectedDefinition && !isCreatingDefinition)}
-                rows={5}
-                onChange={(event) => setDefinitionForm((current) => ({ ...current, jurisdictionMetadata: event.target.value }))}
-                placeholder='{"country":"KE","taxCode":"VAT"}'
-              />
-            </label>
-          </div>
-
-          <div className="toggle-grid">
-            <label className="toggle-card">
-              <input type="checkbox" checked={definitionForm.isTaxable} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, isTaxable: event.target.checked }))} />
-              <span>Taxable</span>
-            </label>
-            <label className="toggle-card">
-              <input type="checkbox" checked={definitionForm.isRecoverable} disabled={Boolean(selectedDefinition && !isCreatingDefinition)} onChange={(event) => setDefinitionForm((current) => ({ ...current, isRecoverable: event.target.checked }))} />
-              <span>Recoverable</span>
-            </label>
-            <label className="toggle-card">
-              <input type="checkbox" checked={definitionForm.requiresApproval} onChange={(event) => setDefinitionForm((current) => ({ ...current, requiresApproval: event.target.checked }))} />
-              <span>Needs approval</span>
-            </label>
-            <label className="toggle-card">
-              <input type="checkbox" checked={definitionForm.isEnabled} onChange={(event) => setDefinitionForm((current) => ({ ...current, isEnabled: event.target.checked }))} />
-              <span>Enabled</span>
-            </label>
-          </div>
-
-          <div className="action-row">
-            <button className="btn-primary" onClick={() => void definitionMutation.mutateAsync()} disabled={definitionMutation.isPending}>
-              {definitionMutation.isPending ? 'Saving...' : selectedDefinition && !isCreatingDefinition ? 'Save definition' : 'Create definition'}
-            </button>
-          </div>
-
-          {selectedDefinition && !isCreatingDefinition && (
-            <div className="detail-grid">
-              <div className="detail-card">
-                <span className="detail-label">Created</span>
-                <strong>{formatDate(selectedDefinition.createdAt)}</strong>
-              </div>
-              <div className="detail-card">
-                <span className="detail-label">Updated</span>
-                <strong>{formatDate(selectedDefinition.updatedAt)}</strong>
-              </div>
-              <div className="detail-card">
-                <span className="detail-label">Scope</span>
-                <strong>{titleizeToken(selectedDefinition.scope)}</strong>
-              </div>
-              <div className="detail-card">
-                <span className="detail-label">Payer</span>
-                <strong>{titleizeToken(selectedDefinition.payer)}</strong>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="workspace-triptych">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Rule sets</h2>
-              <p className="section-copy">Jurisdiction, provider, and booking-window selectors for the active definition.</p>
-            </div>
-            {selectedDefinition && <span className="badge badge-info">{selectedDefinition.code}</span>}
-          </div>
-
+      <div className="grid gap-6 xl:grid-cols-3">
+        <SectionCard
+          title="Rule sets"
+          description="Attach jurisdiction, provider, and booking-window selectors to the active definition."
+          action={selectedDefinition ? <Badge variant="info">{selectedDefinition.code}</Badge> : null}
+        >
           {!selectedDefinition ? (
-            <div className="empty-panel">Select a definition to manage its rule sets.</div>
+            <EmptyBlock title="Select a definition" description="Choose a definition from the catalog before creating rule sets." />
           ) : (
-            <>
-              <div className="list-stack">
-                {ruleSets.length === 0 && <div className="empty-panel">No rule sets yet for this definition.</div>}
+            <div className="space-y-5">
+              <div className="space-y-3">
+                {ruleSets.length === 0 && <EmptyBlock title="No rule sets yet" description="Create the first rule set for this charge definition." />}
                 {ruleSets.map((ruleSet: any) => (
                   <button
                     key={ruleSet.id}
                     type="button"
-                    className={`list-card${ruleSet.id === selectedRuleSetId ? ' selected' : ''}`}
+                    className={ruleSet.id === selectedRuleSetId ? 'rounded-2xl border border-primary/30 bg-primary/5 px-4 py-4 text-left' : 'rounded-2xl border border-border/60 bg-background px-4 py-4 text-left hover:bg-muted/35'}
                     onClick={() => setSelectedRuleSetId(ruleSet.id)}
                   >
-                    <strong>{ruleSet.name}</strong>
-                    <span>{ruleSet.jurisdictionCountry ?? 'Any country'} / {ruleSet.providerId ? 'Provider-specific' : 'Global'}</span>
+                    <div className="text-sm font-semibold text-foreground">{ruleSet.name}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {ruleSet.jurisdictionCountry ?? 'Any country'} / {ruleSet.providerId ? 'Provider-specific' : 'Global'}
+                    </div>
                   </button>
                 ))}
               </div>
 
-              <div className="form-grid">
-                <label className="field field-span-2">
-                  <span>Name</span>
-                  <input value={ruleSetForm.name} onChange={(event) => setRuleSetForm((current) => ({ ...current, name: event.target.value }))} placeholder="Default Kenya marketplace" />
-                </label>
-                <label className="field">
-                  <span>Country</span>
-                  <input value={ruleSetForm.jurisdictionCountry} maxLength={2} onChange={(event) => setRuleSetForm((current) => ({ ...current, jurisdictionCountry: event.target.value.toUpperCase() }))} placeholder="KE" />
-                </label>
-                <label className="field">
-                  <span>Region</span>
-                  <input value={ruleSetForm.jurisdictionRegion} onChange={(event) => setRuleSetForm((current) => ({ ...current, jurisdictionRegion: event.target.value }))} placeholder="Nairobi" />
-                </label>
-                <label className="field">
-                  <span>Provider</span>
-                  <select value={ruleSetForm.providerId} onChange={(event) => setRuleSetForm((current) => ({ ...current, providerId: event.target.value }))}>
-                    <option value="">Any provider</option>
-                    {providers.map((provider: any) => (
-                      <option key={provider.id} value={provider.id}>{provider.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Listing category</span>
-                  <input value={ruleSetForm.listingCategory} onChange={(event) => setRuleSetForm((current) => ({ ...current, listingCategory: event.target.value }))} placeholder="flight" />
-                </label>
-                <label className="field">
-                  <span>Min booking amount</span>
-                  <input value={ruleSetForm.minBookingAmount} type="number" onChange={(event) => setRuleSetForm((current) => ({ ...current, minBookingAmount: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>Max booking amount</span>
-                  <input value={ruleSetForm.maxBookingAmount} type="number" onChange={(event) => setRuleSetForm((current) => ({ ...current, maxBookingAmount: event.target.value }))} />
-                </label>
-                <label className="field field-span-2">
-                  <span>Priority</span>
-                  <input value={ruleSetForm.priority} type="number" onChange={(event) => setRuleSetForm((current) => ({ ...current, priority: event.target.value }))} />
-                </label>
-              </div>
+              <FieldGrid>
+                <TextField label="Name" className="md:col-span-2" value={ruleSetForm.name} onChange={(event) => setRuleSetForm((current) => ({ ...current, name: event.target.value }))} placeholder="Default Kenya marketplace" />
+                <TextField label="Country" value={ruleSetForm.jurisdictionCountry} maxLength={2} onChange={(event) => setRuleSetForm((current) => ({ ...current, jurisdictionCountry: event.target.value.toUpperCase() }))} placeholder="KE" />
+                <TextField label="Region" value={ruleSetForm.jurisdictionRegion} onChange={(event) => setRuleSetForm((current) => ({ ...current, jurisdictionRegion: event.target.value }))} placeholder="Nairobi" />
+                <Field label="Provider">
+                  <Select value={ruleSetForm.providerId || '__any'} onValueChange={(value) => setRuleSetForm((current) => ({ ...current, providerId: value === '__any' ? '' : value }))}>
+                    <SelectTrigger><SelectValue placeholder="Any provider" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__any">Any provider</SelectItem>
+                      {providers.map((provider: any) => (
+                        <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <TextField label="Listing category" value={ruleSetForm.listingCategory} onChange={(event) => setRuleSetForm((current) => ({ ...current, listingCategory: event.target.value }))} placeholder="flight" />
+                <TextField label="Min booking amount" type="number" value={ruleSetForm.minBookingAmount} onChange={(event) => setRuleSetForm((current) => ({ ...current, minBookingAmount: event.target.value }))} />
+                <TextField label="Max booking amount" type="number" value={ruleSetForm.maxBookingAmount} onChange={(event) => setRuleSetForm((current) => ({ ...current, maxBookingAmount: event.target.value }))} />
+                <TextField label="Priority" className="md:col-span-2" type="number" value={ruleSetForm.priority} onChange={(event) => setRuleSetForm((current) => ({ ...current, priority: event.target.value }))} />
+              </FieldGrid>
 
-              <button className="btn-secondary" onClick={() => void ruleSetMutation.mutateAsync()} disabled={ruleSetMutation.isPending}>
-                {ruleSetMutation.isPending ? 'Creating...' : 'Add rule set'}
-              </button>
-            </>
-          )}
-        </section>
-
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Rules</h2>
-              <p className="section-copy">Attach executable rates to the selected rule set, then version them with change reasons.</p>
+              <Button variant="outline" onClick={() => void ruleSetMutation.mutateAsync()} loading={ruleSetMutation.isPending}>
+                Add rule set
+              </Button>
             </div>
-            {selectedRuleSet && <span className="badge badge-info">{selectedRuleSet.name}</span>}
-          </div>
+          )}
+        </SectionCard>
 
+        <SectionCard
+          title="Rules"
+          description="Create executable rates for the selected rule set and version them with change reasons."
+          action={selectedRuleSet ? <Badge variant="info">{selectedRuleSet.name}</Badge> : null}
+        >
           {!selectedRuleSet ? (
-            <div className="empty-panel">Select a rule set to create or update rules.</div>
+            <EmptyBlock title="Select a rule set" description="Choose a rule set before creating or versioning charge rules." />
           ) : (
-            <>
-              <div className="list-stack">
-                {rules.length === 0 && <div className="empty-panel">No rules attached to this rule set yet.</div>}
+            <div className="space-y-5">
+              <div className="space-y-3">
+                {rules.length === 0 && <EmptyBlock title="No rules attached" description="Add the first executable rule for this rule set." />}
                 {rules.map((rule: any) => (
                   <button
                     key={rule.id}
                     type="button"
-                    className={`list-card${rule.id === selectedRuleId ? ' selected' : ''}`}
+                    className={rule.id === selectedRuleId ? 'rounded-2xl border border-primary/30 bg-primary/5 px-4 py-4 text-left' : 'rounded-2xl border border-border/60 bg-background px-4 py-4 text-left hover:bg-muted/35'}
                     onClick={() => setSelectedRuleId(rule.id)}
                   >
-                    <strong>{titleizeToken(rule.calcMethod)}</strong>
-                    <span>Version {rule.version} / {rule.isActive ? 'Active' : 'Inactive'}</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-foreground">{titleizeToken(rule.calcMethod)}</div>
+                      <Badge variant={rule.isActive ? 'success' : 'secondary'}>{rule.isActive ? 'Active' : 'Inactive'}</Badge>
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">Version {rule.version}</div>
                   </button>
                 ))}
               </div>
 
-              <div className="form-grid">
-                <label className="field">
-                  <span>Method</span>
-                  <select value={ruleForm.calcMethod} onChange={(event) => setRuleForm((current) => ({ ...current, calcMethod: event.target.value as RuleFormState['calcMethod'] }))}>
-                    {calcMethodSchema.options.map((option) => (
-                      <option key={option} value={option}>{titleizeToken(option)}</option>
+              <FieldGrid>
+                <Field label="Method">
+                  <Select value={ruleForm.calcMethod} onValueChange={(value) => setRuleForm((current) => ({ ...current, calcMethod: value as RuleFormState['calcMethod'] }))}>
+                    <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                    <SelectContent>
+                      {calcMethodSchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <TextField label="Rate bps" type="number" value={ruleForm.rateBps} onChange={(event) => setRuleForm((current) => ({ ...current, rateBps: event.target.value }))} placeholder="1000" />
+                <TextField label="Fixed amount" type="number" value={ruleForm.fixedAmount} onChange={(event) => setRuleForm((current) => ({ ...current, fixedAmount: event.target.value }))} placeholder="5000" />
+                <TextField label="Currency" value={ruleForm.currencyCode} maxLength={3} onChange={(event) => setRuleForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} />
+                <TextField label="Min amount" type="number" value={ruleForm.minAmount} onChange={(event) => setRuleForm((current) => ({ ...current, minAmount: event.target.value }))} />
+                <TextField label="Max amount" type="number" value={ruleForm.maxAmount} onChange={(event) => setRuleForm((current) => ({ ...current, maxAmount: event.target.value }))} />
+                <TextField label="Effective from" type="date" value={ruleForm.effectiveFrom} onChange={(event) => setRuleForm((current) => ({ ...current, effectiveFrom: event.target.value }))} />
+                <TextField label="Effective to" type="date" value={ruleForm.effectiveTo} onChange={(event) => setRuleForm((current) => ({ ...current, effectiveTo: event.target.value }))} />
+                <TextField label="Formula" className="md:col-span-2" value={ruleForm.formula} onChange={(event) => setRuleForm((current) => ({ ...current, formula: event.target.value }))} placeholder="base_amount * 0.015" />
+              </FieldGrid>
+
+              {ruleForm.calcMethod === 'tiered_percentage' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-foreground">Tiered configuration</div>
+                    <Button variant="outline" size="sm" onClick={() => setRuleForm((current) => ({ ...current, tiers: [...current.tiers, { ...EMPTY_TIER_ROW }] }))}>
+                      <Plus className="h-4 w-4" />
+                      Add tier
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {ruleForm.tiers.map((tier, index) => (
+                      <div key={`${tier.from}-${index}`} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                        <FieldGrid>
+                          <TextField label="From" type="number" value={tier.from} onChange={(event) => setRuleForm((current) => ({
+                            ...current,
+                            tiers: current.tiers.map((item, itemIndex) => itemIndex === index ? { ...item, from: event.target.value } : item),
+                          }))} />
+                          <TextField label="To" type="number" value={tier.to} onChange={(event) => setRuleForm((current) => ({
+                            ...current,
+                            tiers: current.tiers.map((item, itemIndex) => itemIndex === index ? { ...item, to: event.target.value } : item),
+                          }))} placeholder="Leave blank for open-ended" />
+                          <TextField label="Rate bps" type="number" value={tier.rateBps} onChange={(event) => setRuleForm((current) => ({
+                            ...current,
+                            tiers: current.tiers.map((item, itemIndex) => itemIndex === index ? { ...item, rateBps: event.target.value } : item),
+                          }))} />
+                        </FieldGrid>
+                        {ruleForm.tiers.length > 1 ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => setRuleForm((current) => ({ ...current, tiers: current.tiers.filter((_, itemIndex) => itemIndex !== index) }))}
+                          >
+                            Remove tier
+                          </Button>
+                        ) : null}
+                      </div>
                     ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Rate bps</span>
-                  <input value={ruleForm.rateBps} type="number" onChange={(event) => setRuleForm((current) => ({ ...current, rateBps: event.target.value }))} placeholder="1000" />
-                </label>
-                <label className="field">
-                  <span>Fixed amount</span>
-                  <input value={ruleForm.fixedAmount} type="number" onChange={(event) => setRuleForm((current) => ({ ...current, fixedAmount: event.target.value }))} placeholder="5000" />
-                </label>
-                <label className="field">
-                  <span>Currency</span>
-                  <input value={ruleForm.currencyCode} onChange={(event) => setRuleForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} maxLength={3} />
-                </label>
-                <label className="field">
-                  <span>Min amount</span>
-                  <input value={ruleForm.minAmount} type="number" onChange={(event) => setRuleForm((current) => ({ ...current, minAmount: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>Max amount</span>
-                  <input value={ruleForm.maxAmount} type="number" onChange={(event) => setRuleForm((current) => ({ ...current, maxAmount: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>Effective from</span>
-                  <input value={ruleForm.effectiveFrom} type="date" onChange={(event) => setRuleForm((current) => ({ ...current, effectiveFrom: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>Effective to</span>
-                  <input value={ruleForm.effectiveTo} type="date" onChange={(event) => setRuleForm((current) => ({ ...current, effectiveTo: event.target.value }))} />
-                </label>
-                <label className="field field-span-2">
-                  <span>Formula</span>
-                  <input value={ruleForm.formula} onChange={(event) => setRuleForm((current) => ({ ...current, formula: event.target.value }))} placeholder="base_amount * 0.015" />
-                </label>
-                <label className="field field-span-2">
-                  <span>Tiered config JSON</span>
-                  <textarea value={ruleForm.tieredConfig} rows={4} onChange={(event) => setRuleForm((current) => ({ ...current, tieredConfig: event.target.value }))} placeholder='{"tiers":[{"from":0,"to":100000,"rateBps":500}]}' />
-                </label>
-                <label className="field field-span-2">
-                  <span>Conditions JSON</span>
-                  <textarea value={ruleForm.conditions} rows={4} onChange={(event) => setRuleForm((current) => ({ ...current, conditions: event.target.value }))} placeholder='[{"field":"country","op":"eq","value":"KE"}]' />
-                </label>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-foreground">Rule conditions</div>
+                  <Button variant="outline" size="sm" onClick={() => setRuleForm((current) => ({ ...current, conditions: [...current.conditions, { ...EMPTY_CONDITION_ROW }] }))}>
+                    <Plus className="h-4 w-4" />
+                    Add condition
+                  </Button>
+                </div>
+                {ruleForm.conditions.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                    No conditions. The rule will apply whenever the rule set matches.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {ruleForm.conditions.map((condition, index) => (
+                      <div key={`${condition.field}-${condition.op}-${index}`} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                        <FieldGrid>
+                          <Field label="Field">
+                            <Select value={condition.field} onValueChange={(value) => setRuleForm((current) => ({
+                              ...current,
+                              conditions: current.conditions.map((item, itemIndex) => itemIndex === index ? { ...item, field: value as ConditionRowState['field'] } : item),
+                            }))}>
+                              <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                              <SelectContent>
+                                {CONDITION_FIELD_OPTIONS.map((option) => (
+                                  <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          <Field label="Operator">
+                            <Select value={condition.op} onValueChange={(value) => setRuleForm((current) => ({
+                              ...current,
+                              conditions: current.conditions.map((item, itemIndex) => itemIndex === index ? { ...item, op: value as ConditionRowState['op'] } : item),
+                            }))}>
+                              <SelectTrigger><SelectValue placeholder="Select operator" /></SelectTrigger>
+                              <SelectContent>
+                                {CONDITION_OPERATOR_OPTIONS.map((option) => (
+                                  <SelectItem key={option} value={option}>{titleizeToken(option)}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          <TextField
+                            label={condition.op === 'in' || condition.op === 'not_in' ? 'Value list (comma separated)' : 'Value'}
+                            className="md:col-span-2"
+                            value={condition.value}
+                            onChange={(event) => setRuleForm((current) => ({
+                              ...current,
+                              conditions: current.conditions.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item),
+                            }))}
+                            placeholder={isNumericConditionField(condition.field) ? '10000' : 'KE or safari,flight'}
+                          />
+                        </FieldGrid>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => setRuleForm((current) => ({ ...current, conditions: current.conditions.filter((_, itemIndex) => itemIndex !== index) }))}
+                        >
+                          Remove condition
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <label className="toggle-card">
-                <input type="checkbox" checked={ruleForm.isInclusive} onChange={(event) => setRuleForm((current) => ({ ...current, isInclusive: event.target.checked }))} />
-                <span>Inclusive charge</span>
-              </label>
+              <SwitchField label="Inclusive charge" description="Treat the rule amount as already included in the base amount." checked={ruleForm.isInclusive} onCheckedChange={(value) => setRuleForm((current) => ({ ...current, isInclusive: value }))} />
 
-              <button className="btn-secondary" onClick={() => void ruleMutation.mutateAsync()} disabled={ruleMutation.isPending}>
-                {ruleMutation.isPending ? 'Creating...' : 'Add rule'}
-              </button>
+              <Button variant="outline" onClick={() => void ruleMutation.mutateAsync()} loading={ruleMutation.isPending}>
+                Add rule
+              </Button>
 
-              {selectedRule && (
-                <div className="panel-block subtle-panel">
-                  <div className="workspace-panel-header">
+              {selectedRule ? (
+                <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/25 p-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="section-title">Selected rule maintenance</h3>
-                      <p className="section-copy">Version this rule with a clear reason whenever the numeric behavior changes.</p>
+                      <div className="text-sm font-semibold text-foreground">Selected rule maintenance</div>
+                      <div className="mt-1 text-sm text-muted-foreground">Version the active rule with a clear change reason.</div>
                     </div>
-                    <span className={`badge ${selectedRule.isActive ? 'badge-success' : 'badge-danger'}`}>
-                      {selectedRule.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    <Badge variant={selectedRule.isActive ? 'success' : 'secondary'}>{selectedRule.isActive ? 'Active' : 'Inactive'}</Badge>
                   </div>
-                  <div className="form-grid">
-                    <label className="field">
-                      <span>Rate bps</span>
-                      <input value={ruleUpdateForm.rateBps} type="number" onChange={(event) => setRuleUpdateForm((current) => ({ ...current, rateBps: event.target.value }))} />
-                    </label>
-                    <label className="field">
-                      <span>Fixed amount</span>
-                      <input value={ruleUpdateForm.fixedAmount} type="number" onChange={(event) => setRuleUpdateForm((current) => ({ ...current, fixedAmount: event.target.value }))} />
-                    </label>
-                    <label className="field">
-                      <span>Min amount</span>
-                      <input value={ruleUpdateForm.minAmount} type="number" onChange={(event) => setRuleUpdateForm((current) => ({ ...current, minAmount: event.target.value }))} />
-                    </label>
-                    <label className="field">
-                      <span>Max amount</span>
-                      <input value={ruleUpdateForm.maxAmount} type="number" onChange={(event) => setRuleUpdateForm((current) => ({ ...current, maxAmount: event.target.value }))} />
-                    </label>
-                    <label className="field">
-                      <span>Effective to</span>
-                      <input value={ruleUpdateForm.effectiveTo} type="date" onChange={(event) => setRuleUpdateForm((current) => ({ ...current, effectiveTo: event.target.value }))} />
-                    </label>
-                    <label className="toggle-card">
-                      <input type="checkbox" checked={ruleUpdateForm.isActive} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, isActive: event.target.checked }))} />
-                      <span>Rule active</span>
-                    </label>
-                    <label className="field field-span-2">
-                      <span>Change reason</span>
-                      <textarea value={ruleUpdateForm.changeReason} rows={3} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, changeReason: event.target.value }))} placeholder="Explain why the rate is changing." />
-                    </label>
-                  </div>
-                  <button className="btn-primary" onClick={() => void ruleUpdateMutation.mutateAsync()} disabled={ruleUpdateMutation.isPending}>
-                    {ruleUpdateMutation.isPending ? 'Updating...' : 'Version rule'}
-                  </button>
+
+                  <FieldGrid>
+                    <TextField label="Rate bps" type="number" value={ruleUpdateForm.rateBps} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, rateBps: event.target.value }))} />
+                    <TextField label="Fixed amount" type="number" value={ruleUpdateForm.fixedAmount} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, fixedAmount: event.target.value }))} />
+                    <TextField label="Min amount" type="number" value={ruleUpdateForm.minAmount} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, minAmount: event.target.value }))} />
+                    <TextField label="Max amount" type="number" value={ruleUpdateForm.maxAmount} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, maxAmount: event.target.value }))} />
+                    <TextField label="Effective to" type="date" value={ruleUpdateForm.effectiveTo} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, effectiveTo: event.target.value }))} />
+                    <SwitchField label="Rule active" description="Keep this version available for the engine to execute." checked={ruleUpdateForm.isActive} onCheckedChange={(value) => setRuleUpdateForm((current) => ({ ...current, isActive: value }))} />
+                    <TextareaField label="Change reason" className="md:col-span-2" rows={3} value={ruleUpdateForm.changeReason} onChange={(event) => setRuleUpdateForm((current) => ({ ...current, changeReason: event.target.value }))} placeholder="Explain why the rate is changing." />
+                  </FieldGrid>
+
+                  {(selectedRuleConditions.length > 0 || selectedRuleTierRows.length > 0) ? (
+                    <InfoGrid>
+                      <InfoCard
+                        label="Conditions"
+                        value={selectedRuleConditions.length > 0 ? selectedRuleConditions.map((condition) => `${titleizeToken(condition.field)} ${titleizeToken(condition.op)} ${String(condition.value)}`).join(' / ') : 'None'}
+                      />
+                      <InfoCard
+                        label="Tiering"
+                        value={selectedRuleTierRows.length > 0 ? selectedRuleTierRows.map((tier) => `${tier.from}-${tier.to ?? 'max'}: ${tier.rateBps} bps`).join(' / ') : 'Not tiered'}
+                      />
+                    </InfoGrid>
+                  ) : null}
+
+                  <Button onClick={() => void ruleUpdateMutation.mutateAsync()} loading={ruleUpdateMutation.isPending}>
+                    Version rule
+                  </Button>
                 </div>
-              )}
-            </>
-          )}
-        </section>
-
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Dependencies</h2>
-              <p className="section-copy">Control sequencing and base relationships between charge definitions.</p>
+              ) : null}
             </div>
-          </div>
+          )}
+        </SectionCard>
 
+        <SectionCard
+          title="Dependencies"
+          description="Control sequencing and base relationships between charge definitions."
+          action={selectedDefinition ? <Badge variant="info">{selectedDefinition.code}</Badge> : null}
+        >
           {!selectedDefinition ? (
-            <div className="empty-panel">Select a definition to map its dependencies.</div>
+            <EmptyBlock title="Select a definition" description="Choose a definition before managing downstream dependencies." />
           ) : (
-            <>
-              <div className="list-stack">
-                {dependencies.length === 0 && <div className="empty-panel">No dependencies configured yet.</div>}
+            <div className="space-y-5">
+              <div className="space-y-3">
+                {dependencies.length === 0 && <EmptyBlock title="No dependencies recorded" description="This definition currently has no upstream charge dependencies." />}
                 {dependencies.map((dependency: any) => {
-                  const target = definitions.find((definition: any) => definition.id === dependency.dependsOnChargeId);
+                  const upstream = definitions.find((definition: any) => definition.id === dependency.dependsOnChargeId);
                   return (
-                    <div key={dependency.id} className="list-card static">
-                      <strong>{selectedDefinition.code}</strong>
-                      <span>{titleizeToken(dependency.dependencyType)} {'->'} {target?.code ?? dependency.dependsOnChargeId.slice(-8)}</span>
+                    <div key={dependency.id} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">{upstream?.code ?? dependency.dependsOnChargeId.slice(-8)}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">{titleizeToken(dependency.dependencyType)}</div>
+                        </div>
+                        <GitBranchPlus className="h-4 w-4 text-primary" />
+                      </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="form-grid">
-                <label className="field field-span-2">
-                  <span>Depends on</span>
-                  <select value={dependencyForm.dependsOnChargeId} onChange={(event) => setDependencyForm((current) => ({ ...current, dependsOnChargeId: event.target.value }))}>
-                    <option value="">Select another definition</option>
+              <Field label="Depends on definition">
+                <Select value={dependencyForm.dependsOnChargeId || '__none'} onValueChange={(value) => setDependencyForm((current) => ({ ...current, dependsOnChargeId: value === '__none' ? '' : value }))}>
+                  <SelectTrigger><SelectValue placeholder="Select definition" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Select definition</SelectItem>
                     {otherDefinitions.map((definition: any) => (
-                      <option key={definition.id} value={definition.id}>{definition.code} - {definition.name}</option>
+                      <SelectItem key={definition.id} value={definition.id}>{definition.code} - {definition.name}</SelectItem>
                     ))}
-                  </select>
-                </label>
-                <label className="field field-span-2">
-                  <span>Dependency type</span>
-                  <select value={dependencyForm.dependencyType} onChange={(event) => setDependencyForm((current) => ({ ...current, dependencyType: event.target.value as DependencyFormState['dependencyType'] }))}>
-                    <option value="after">After</option>
-                    <option value="base_of">Base of</option>
-                    <option value="exclusive">Exclusive</option>
-                  </select>
-                </label>
-              </div>
+                  </SelectContent>
+                </Select>
+              </Field>
 
-              <button className="btn-secondary" onClick={() => void dependencyMutation.mutateAsync()} disabled={dependencyMutation.isPending}>
-                {dependencyMutation.isPending ? 'Adding...' : 'Add dependency'}
-              </button>
-            </>
+              <Field label="Dependency type">
+                <Select value={dependencyForm.dependencyType} onValueChange={(value) => setDependencyForm((current) => ({ ...current, dependencyType: value as DependencyFormState['dependencyType'] }))}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="base_of">Base of</SelectItem>
+                    <SelectItem value="after">After</SelectItem>
+                    <SelectItem value="exclusive">Exclusive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Button variant="outline" onClick={() => void dependencyMutation.mutateAsync()} loading={dependencyMutation.isPending}>
+                Add dependency
+              </Button>
+            </div>
           )}
-        </section>
+        </SectionCard>
       </div>
-    </div>
+    </PageShell>
   );
 }

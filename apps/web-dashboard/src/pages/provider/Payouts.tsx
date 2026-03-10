@@ -1,18 +1,26 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Clock3, HandCoins, Landmark, ShieldAlert } from 'lucide-react';
+import { Badge } from '@felix-travel/ui';
 import { useAuth } from '../../lib/auth-context.js';
 import { apiClient } from '../../lib/api-client.js';
 import { formatDate, formatMoney, getErrorMessage, titleizeToken } from '../../lib/admin-utils.js';
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
-}
+import {
+  DataTable,
+  DataTableEmpty,
+  EmptyBlock,
+  EntityCell,
+  InfoCard,
+  InfoGrid,
+  Notice,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  WorkspaceGrid,
+} from '../../components/workspace-ui.js';
+import { Button } from '@felix-travel/ui';
 
 export function ProviderPayouts() {
   const { user } = useAuth();
@@ -56,7 +64,14 @@ export function ProviderPayouts() {
   });
 
   if (!providerId) {
-    return <div className="empty-panel">No provider context is attached to this account.</div>;
+    return (
+      <PageShell>
+        <EmptyBlock
+          title="No provider context is attached to this account."
+          description="Assign a provider profile to this user before using provider payout operations."
+        />
+      </PageShell>
+    );
   }
 
   const payoutItems = payouts?.payouts ?? [];
@@ -67,132 +82,111 @@ export function ProviderPayouts() {
   const selectedPayout = payoutItems.find((payout: any) => payout.id === selectedPayoutId) ?? null;
 
   return (
-    <div className="domain-page">
-      <div className="domain-page-header">
-        <div>
-          <span className="eyebrow">Provider payouts</span>
-          <h1 className="page-title">Payouts and settlement requests</h1>
-          <p className="page-subtitle">
-            Review prior disbursements, inspect deductions, and trigger a new payout request once you are ready to settle eligible bookings.
-          </p>
-        </div>
-        <div className="page-actions">
-          <button className="btn-primary" onClick={() => void requestPayoutMutation.mutateAsync()} disabled={requestPayoutMutation.isPending || !defaultAccount}>
-            {requestPayoutMutation.isPending ? 'Submitting...' : 'Request payout'}
-          </button>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Provider payouts"
+        title="Payouts and settlement requests"
+        description="Review prior disbursements, inspect deductions, and trigger new payout requests once eligible bookings are ready for settlement."
+        actions={
+          <Button
+            onClick={() => void requestPayoutMutation.mutateAsync()}
+            loading={requestPayoutMutation.isPending}
+            disabled={!defaultAccount}
+          >
+            Request payout
+          </Button>
+        }
+      />
 
-      <div className="dashboard-stat-grid">
-        <StatCard label="Pending batches" value={pendingCount} hint="Payouts still moving through approval or processing" />
-        <StatCard label="Settled value" value={formatMoney(settledValue, payoutItems[0]?.currencyCode ?? 'KES')} hint="Completed payout volume" />
-        <StatCard label="On hold" value={heldCount} hint="Batches awaiting manual approval" />
-        <StatCard label="Payout route" value={defaultAccount ? 'Ready' : 'Missing'} hint={defaultAccount ? `${defaultAccount.accountType.replace(/_/g, ' ')} ending ${defaultAccount.accountNumber.slice(-4)}` : 'Add a default payout account first'} />
-      </div>
+      {(message || errorMessage) ? (
+        <Notice message={errorMessage ?? message ?? ''} variant={errorMessage ? 'destructive' : 'success'} />
+      ) : null}
 
-      {(message || errorMessage) && (
-        <div className={errorMessage ? 'alert-error' : 'alert-success'} style={{ marginBottom: '1rem' }}>
-          {errorMessage ?? message}
-        </div>
-      )}
+      <StatGrid>
+        <StatCard label="Pending batches" value={pendingCount} hint="Payouts still moving through approval or processing" icon={Clock3} tone="warning" />
+        <StatCard label="Settled value" value={formatMoney(settledValue, payoutItems[0]?.currencyCode ?? 'KES')} hint="Completed payout volume" icon={HandCoins} tone="success" />
+        <StatCard label="On hold" value={heldCount} hint="Batches awaiting manual approval" icon={ShieldAlert} tone="warning" />
+        <StatCard
+          label="Payout route"
+          value={defaultAccount ? 'Ready' : 'Missing'}
+          hint={defaultAccount ? `${defaultAccount.accountType.replace(/_/g, ' ')} ending ${defaultAccount.accountNumber.slice(-4)}` : 'Add a default payout account first'}
+          icon={Landmark}
+        />
+      </StatGrid>
 
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Payout history</h2>
-              <p className="section-copy">Select a payout to review processing details and deductions.</p>
-            </div>
-          </div>
-
-          <div className="table-container domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Batch</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Processed</th>
-                  <th>Reference</th>
+      <WorkspaceGrid
+        main={
+          <SectionCard
+            title="Payout history"
+            description="Select a payout batch to review status, references, and payout-side deductions."
+          >
+            <DataTable headers={['Batch', 'Amount', 'Status', 'Processed', 'Reference']}>
+              {payoutItems.map((payout: any) => (
+                <tr
+                  key={payout.id}
+                  className={selectedPayoutId === payout.id ? 'border-b border-border/60 bg-primary/5' : 'border-b border-border/60'}
+                  onClick={() => setSelectedPayoutId(payout.id)}
+                >
+                  <td className="cursor-pointer p-4">
+                    <EntityCell title={payout.id.slice(-8)} subtitle={payout.payoutAccountId.slice(-8)} />
+                  </td>
+                  <td className="p-4 text-sm font-medium text-foreground">{formatMoney(payout.amount, payout.currencyCode)}</td>
+                  <td className="p-4">
+                    <Badge variant={payout.status === 'succeeded' ? 'success' : payout.status === 'failed' ? 'destructive' : 'warning'}>
+                      {titleizeToken(payout.status)}
+                    </Badge>
+                  </td>
+                  <td className="p-4 text-sm text-muted-foreground">{formatDate(payout.processedAt ?? payout.createdAt)}</td>
+                  <td className="p-4 text-sm text-muted-foreground">{payout.tinggPaymentRef ?? 'Pending'}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {payoutItems.map((payout: any) => (
-                  <tr
-                    key={payout.id}
-                    className={selectedPayoutId === payout.id ? 'table-row-selected' : ''}
-                    onClick={() => setSelectedPayoutId(payout.id)}
-                  >
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{payout.id.slice(-8)}</strong>
-                        <span>{payout.payoutAccountId.slice(-8)}</span>
+              ))}
+              {payoutItems.length === 0 && <DataTableEmpty colSpan={5} label="No payouts have been created yet." />}
+            </DataTable>
+          </SectionCard>
+        }
+        side={
+          <SectionCard
+            title="Selected payout"
+            description="Review processing details and deductions for the active batch."
+          >
+            {!selectedPayout ? (
+              <EmptyBlock
+                title="Select a payout"
+                description="Choose a payout batch from the history table to inspect processing and deduction details."
+              />
+            ) : (
+              <div className="space-y-5">
+                <InfoGrid>
+                  <InfoCard label="Amount" value={formatMoney(selectedPayout.amount, selectedPayout.currencyCode)} />
+                  <InfoCard label="Status" value={titleizeToken(selectedPayout.status)} />
+                  <InfoCard label="Processed" value={formatDate(selectedPayout.processedAt ?? selectedPayout.createdAt)} />
+                  <InfoCard label="Reference" value={selectedPayout.tinggPaymentRef ?? 'Pending dispatch'} />
+                </InfoGrid>
+
+                <div className="space-y-3">
+                  {(chargeLines ?? []).map((line: any) => (
+                    <div key={line.id} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">{line.description}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">{titleizeToken(line.scope)}</div>
+                        </div>
+                        <div className="text-sm font-medium text-foreground">{formatMoney(line.chargeAmount, line.currencyCode)}</div>
                       </div>
-                    </td>
-                    <td>{formatMoney(payout.amount, payout.currencyCode)}</td>
-                    <td>
-                      <span className={`badge ${payout.status === 'succeeded' ? 'badge-success' : payout.status === 'failed' ? 'badge-danger' : 'badge-warning'}`}>
-                        {titleizeToken(payout.status)}
-                      </span>
-                    </td>
-                    <td>{formatDate(payout.processedAt ?? payout.createdAt)}</td>
-                    <td>{payout.tinggPaymentRef ?? 'Pending'}</td>
-                  </tr>
-                ))}
-                {payoutItems.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">No payouts have been created yet.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Selected payout</h2>
-              <p className="section-copy">Review deductions and operational context for the selected payout batch.</p>
-            </div>
-          </div>
-
-          {!selectedPayout ? (
-            <div className="empty-panel">Select a payout to inspect it.</div>
-          ) : (
-            <>
-              <div className="detail-grid" style={{ marginTop: 0 }}>
-                <div className="detail-card">
-                  <span className="detail-label">Amount</span>
-                  <strong>{formatMoney(selectedPayout.amount, selectedPayout.currencyCode)}</strong>
-                </div>
-                <div className="detail-card">
-                  <span className="detail-label">Status</span>
-                  <strong>{titleizeToken(selectedPayout.status)}</strong>
-                </div>
-                <div className="detail-card">
-                  <span className="detail-label">Processed</span>
-                  <strong>{formatDate(selectedPayout.processedAt ?? selectedPayout.createdAt)}</strong>
-                </div>
-                <div className="detail-card">
-                  <span className="detail-label">Reference</span>
-                  <strong>{selectedPayout.tinggPaymentRef ?? 'Pending dispatch'}</strong>
+                    </div>
+                  ))}
+                  {(chargeLines ?? []).length === 0 && (
+                    <EmptyBlock
+                      title="No payout deductions recorded"
+                      description="This batch does not currently have payout charge lines attached."
+                    />
+                  )}
                 </div>
               </div>
-
-              <div className="list-stack" style={{ marginTop: '1rem' }}>
-                {(chargeLines ?? []).map((line: any) => (
-                  <div key={line.id} className="list-card static">
-                    <strong>{line.description}</strong>
-                    <span>{formatMoney(line.chargeAmount, line.currencyCode)} / {titleizeToken(line.scope)}</span>
-                  </div>
-                ))}
-                {(chargeLines ?? []).length === 0 && <div className="empty-panel">No payout deductions were recorded for this batch.</div>}
-              </div>
-            </>
-          )}
-        </section>
-      </div>
-    </div>
+            )}
+          </SectionCard>
+        }
+      />
+    </PageShell>
   );
 }

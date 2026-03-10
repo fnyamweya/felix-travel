@@ -1,17 +1,23 @@
-import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { BellRing, Blocks, Building2, CreditCard, TrendingUp, Wallet } from 'lucide-react';
+import { BookingStatusBadge, Badge } from '@felix-travel/ui';
 import { apiClient } from '../../lib/api-client.js';
-import { formatMoney, formatDate, titleizeToken } from '../../lib/admin-utils.js';
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
-}
+import { formatDate, formatMoney, titleizeToken } from '../../lib/admin-utils.js';
+import {
+  DataTable,
+  DataTableEmpty,
+  EntityCell,
+  HeroPanel,
+  InfoCard,
+  InfoGrid,
+  PageShell,
+  QuickActionCard,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  WorkspaceGrid,
+  ActionButtonLink,
+} from '../../components/workspace-ui.js';
 
 export function AdminDashboard() {
   const { data: bookings } = useQuery({
@@ -34,132 +40,124 @@ export function AdminDashboard() {
   const commissionEarned = bookings?.bookings?.reduce((sum: number, booking: any) => sum + (booking.commissionAmount ?? 0), 0) ?? 0;
   const pendingPayouts = payouts?.payouts?.filter((payout: any) => payout.status === 'pending').length ?? 0;
   const pendingRefunds = refunds?.refunds?.filter((refund: any) => refund.status === 'pending').length ?? 0;
-
-  const actionCards = [
-    {
-      title: 'Access review',
-      body: 'Invite new operators, assign provider access, and disable risky accounts.',
-      to: '/admin/customers',
-    },
-    {
-      title: 'Provider setup',
-      body: 'Bring new partners online and keep commercial contact details current.',
-      to: '/admin/providers',
-    },
-    {
-      title: 'Charge governance',
-      body: 'Adjust definitions and rule versions with a clear audit trail.',
-      to: '/admin/charges',
-    },
+  const queueItems = [
+    ...(payouts?.payouts ?? []).slice(0, 4).map((payout: any) => ({
+      id: payout.id,
+      type: 'Payout',
+      label: titleizeToken(payout.status),
+      value: formatMoney(payout.amount, payout.currencyCode),
+    })),
+    ...(refunds?.refunds ?? []).slice(0, 4).map((refund: any) => ({
+      id: refund.id,
+      type: 'Refund',
+      label: titleizeToken(refund.status),
+      value: formatMoney(refund.amount, refund.currencyCode),
+    })),
   ];
 
   return (
-    <div className="domain-page">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <span className="eyebrow">Operations snapshot</span>
-          <h1 className="page-title">Marketplace command center</h1>
-          <p className="page-subtitle">
-            Watch the live operating picture, then jump directly into the domain workspace that needs attention.
-          </p>
-        </div>
-        <div className="hero-actions">
-          <Link to="/admin/charges/simulate" className="ghost-link">Run a charge simulation</Link>
-          <Link to="/admin/audit" className="ghost-link">Open the audit log</Link>
-        </div>
-      </section>
-
-      <div className="dashboard-stat-grid">
-        <StatCard label="Bookings" value={totalBookings} hint={`${paidBookings} revenue-carrying bookings in the current result set`} />
-        <StatCard label="Commission earned" value={formatMoney(commissionEarned)} hint="Commission total across recent bookings" />
-        <StatCard label="Pending payouts" value={pendingPayouts} hint="Batches waiting for review or approval" />
-        <StatCard label="Pending refunds" value={pendingRefunds} hint="Refund requests that still need intervention" />
-      </div>
-
-      <div className="workspace-triptych" style={{ marginBottom: '1.5rem' }}>
-        {actionCards.map((card) => (
-          <Link key={card.title} to={card.to} className="feature-card">
-            <strong>{card.title}</strong>
-            <span>{card.body}</span>
-          </Link>
-        ))}
-      </div>
-
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Recent bookings</h2>
-              <p className="section-copy">Keep an eye on booking references, service dates, and payment state.</p>
+    <PageShell>
+      <HeroPanel
+        title="Marketplace command center"
+        description="Watch bookings, settlement queues, and commercial exceptions from one control surface, then step directly into the domain that needs intervention."
+        actions={
+          <>
+            <ActionButtonLink to="/admin/charges/simulate" variant="secondary">Run charge simulation</ActionButtonLink>
+            <ActionButtonLink to="/admin/audit" variant="outline">Open audit log</ActionButtonLink>
+          </>
+        }
+        spotlight={
+          <div className="space-y-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Today’s operating view</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <InfoCard label="Revenue-carrying bookings" value={<span className="text-white">{paidBookings}</span>} />
+              <InfoCard label="Items awaiting finance action" value={<span className="text-white">{pendingPayouts + pendingRefunds}</span>} />
             </div>
           </div>
-          <div className="table-container domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Reference</th>
-                  <th>Service date</th>
-                  <th>Total</th>
-                  <th>Commission</th>
-                  <th>Status</th>
+        }
+      />
+
+      <StatGrid>
+        <StatCard label="Bookings" value={totalBookings} hint={`${paidBookings} active bookings moving revenue`} icon={TrendingUp} />
+        <StatCard label="Commission earned" value={formatMoney(commissionEarned)} hint="Platform commission across the current working set" icon={Wallet} tone="info" />
+        <StatCard label="Pending payouts" value={pendingPayouts} hint="Settlement batches waiting on review or release" icon={CreditCard} tone="warning" />
+        <StatCard label="Pending refunds" value={pendingRefunds} hint="Refund requests still requiring intervention" icon={BellRing} tone="warning" />
+      </StatGrid>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <QuickActionCard
+          title="Access review"
+          description="Invite operators, attach provider roles, and disable risky accounts without leaving the workspace."
+          to="/admin/customers"
+        />
+        <QuickActionCard
+          title="Provider setup"
+          description="Onboard partners with cleaner market and reserve visibility before bookings hit production."
+          to="/admin/providers"
+        />
+        <QuickActionCard
+          title="Charge governance"
+          description="Control pricing logic through structured definitions, rules, and dependencies."
+          to="/admin/charges"
+        />
+      </div>
+
+      <WorkspaceGrid
+        main={
+          <SectionCard
+            title="Recent bookings"
+            description="A working ledger of the most recent bookings, including service dates, totals, and live booking state."
+          >
+            <DataTable headers={['Reference', 'Service date', 'Total', 'Commission', 'Status']}>
+              {(bookings?.bookings ?? []).slice(0, 8).map((booking: any) => (
+                <tr key={booking.id} className="border-b border-border/60">
+                  <td className="p-4">
+                    <EntityCell title={booking.reference} subtitle={booking.id.slice(-8)} />
+                  </td>
+                  <td className="p-4 text-sm text-muted-foreground">{formatDate(booking.serviceDate)}</td>
+                  <td className="p-4 text-sm font-medium text-foreground">{formatMoney(booking.totalAmount, booking.currencyCode)}</td>
+                  <td className="p-4 text-sm text-muted-foreground">{formatMoney(booking.commissionAmount, booking.currencyCode)}</td>
+                  <td className="p-4"><BookingStatusBadge status={booking.status} /></td>
                 </tr>
-              </thead>
-              <tbody>
-                {(bookings?.bookings ?? []).slice(0, 8).map((booking: any) => (
-                  <tr key={booking.id}>
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{booking.reference}</strong>
-                        <span>{booking.id.slice(-8)}</span>
+              ))}
+              {(bookings?.bookings ?? []).length === 0 && <DataTableEmpty colSpan={5} label="No bookings available." />}
+            </DataTable>
+          </SectionCard>
+        }
+        side={
+          <div className="space-y-6">
+            <SectionCard
+              title="Queue watch"
+              description="The next finance and operations items that should be reviewed."
+            >
+              <div className="space-y-3">
+                {queueItems.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">{item.type} {item.id.slice(-8)}</div>
+                        <div className="mt-1 text-sm text-muted-foreground">{item.value}</div>
                       </div>
-                    </td>
-                    <td>{formatDate(booking.serviceDate)}</td>
-                    <td>{formatMoney(booking.totalAmount, booking.currencyCode)}</td>
-                    <td>{formatMoney(booking.commissionAmount, booking.currencyCode)}</td>
-                    <td>
-                      <span className={`badge ${booking.status === 'confirmed' || booking.status === 'paid' ? 'badge-success' : booking.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                        {titleizeToken(booking.status)}
-                      </span>
-                    </td>
-                  </tr>
+                      <Badge variant={item.type === 'Refund' ? 'warning' : 'info'}>{item.label}</Badge>
+                    </div>
+                  </div>
                 ))}
-                {(bookings?.bookings ?? []).length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">No bookings available.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Queue watch</h2>
-              <p className="section-copy">Prioritize the next operational decisions without opening every page.</p>
-            </div>
-          </div>
-
-          <div className="list-stack">
-            {(payouts?.payouts ?? []).slice(0, 4).map((payout: any) => (
-              <div key={payout.id} className="list-card static">
-                <strong>Payout {payout.id.slice(-8)}</strong>
-                <span>{titleizeToken(payout.status)} / {formatMoney(payout.amount, payout.currencyCode)}</span>
+                {queueItems.length === 0 && <div className="text-sm text-muted-foreground">No payout or refund activity to surface right now.</div>}
               </div>
-            ))}
-            {(refunds?.refunds ?? []).slice(0, 4).map((refund: any) => (
-              <div key={refund.id} className="list-card static">
-                <strong>Refund {refund.id.slice(-8)}</strong>
-                <span>{titleizeToken(refund.status)} / {formatMoney(refund.amount, refund.currencyCode)}</span>
-              </div>
-            ))}
-            {!(payouts?.payouts?.length || refunds?.refunds?.length) && (
-              <div className="empty-panel">No payout or refund activity to surface right now.</div>
-            )}
+            </SectionCard>
+
+            <SectionCard
+              title="Coverage"
+              description="Quick operational anchors for the core control domains."
+            >
+              <InfoGrid>
+                <InfoCard label="Access" value={<span className="inline-flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Operators and roles</span>} />
+                <InfoCard label="Charges" value={<span className="inline-flex items-center gap-2"><Blocks className="h-4 w-4 text-primary" /> Structured pricing logic</span>} />
+              </InfoGrid>
+            </SectionCard>
           </div>
-        </section>
-      </div>
-    </div>
+        }
+      />
+    </PageShell>
   );
 }

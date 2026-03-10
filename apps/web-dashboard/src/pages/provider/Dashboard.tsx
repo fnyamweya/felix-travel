@@ -1,23 +1,37 @@
-import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import {
+  BookOpenCheck,
+  CalendarClock,
+  CircleDollarSign,
+  HandCoins,
+  ListChecks,
+  ShieldCheck,
+  WalletCards,
+} from 'lucide-react';
+import { BookingStatusBadge, Badge } from '@felix-travel/ui';
 import { useAuth } from '../../lib/auth-context.js';
 import { apiClient } from '../../lib/api-client.js';
-import { formatMoney, formatDate, titleizeToken } from '../../lib/admin-utils.js';
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
-}
+import { formatDate, formatMoney } from '../../lib/admin-utils.js';
+import {
+  ActionButtonLink,
+  DataTable,
+  DataTableEmpty,
+  EmptyBlock,
+  EntityCell,
+  HeroPanel,
+  InfoCard,
+  InfoGrid,
+  PageShell,
+  QuickActionCard,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  WorkspaceGrid,
+} from '../../components/workspace-ui.js';
 
 export function ProviderDashboard() {
   const { user } = useAuth();
   const providerId = user?.providerId;
-
   const enabled = Boolean(providerId);
 
   const { data: provider } = useQuery({
@@ -57,7 +71,14 @@ export function ProviderDashboard() {
   });
 
   if (!providerId) {
-    return <div className="empty-panel">No provider context is attached to this account.</div>;
+    return (
+      <PageShell>
+        <EmptyBlock
+          title="No provider context is attached to this account."
+          description="Assign a provider profile to this user before using provider operations."
+        />
+      </PageShell>
+    );
   }
 
   const bookings = bookingsData?.bookings ?? [];
@@ -79,150 +100,117 @@ export function ProviderDashboard() {
     autoApprovePayout?: boolean;
   } | null;
 
-  const featureCards = [
-    {
-      title: 'Manage listings',
-      body: 'Create new inventory, adjust pricing, and publish ready-to-sell experiences.',
-      to: '/provider/listings',
-    },
-    {
-      title: 'Request payout',
-      body: 'Review payout readiness and trigger the next settlement batch when bookings are eligible.',
-      to: '/provider/payouts',
-    },
-    {
-      title: 'Generate statement',
-      body: 'Export booking and payout activity into a clean settlement statement for finance review.',
-      to: '/provider/settlement',
-    },
-  ];
-
   return (
-    <div className="domain-page">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <span className="eyebrow">Provider workspace</span>
-          <h1 className="page-title">{provider?.name ?? 'Provider portal'}</h1>
-          <p className="page-subtitle">
-            Track operational performance, stay ahead of settlement readiness, and keep your inventory and payout setup current from one place.
-          </p>
-        </div>
-        <div className="hero-actions">
-          <Link to="/provider/listings" className="ghost-link">Open listings</Link>
-          <Link to="/provider/accounts" className="ghost-link">Manage accounts</Link>
-        </div>
-      </section>
-
-      <div className="dashboard-stat-grid">
-        <StatCard label="Gross booked" value={formatMoney(grossBooked, provider?.currencyCode ?? 'KES')} hint={`${bookings.length} bookings in the current working set`} />
-        <StatCard label="Upcoming services" value={upcomingBookings} hint="Paid or confirmed bookings awaiting fulfilment" />
-        <StatCard label="Pending settlement" value={formatMoney(pendingPayoutValue, provider?.currencyCode ?? 'KES')} hint="Payouts not yet completed" />
-        <StatCard label="Settled" value={formatMoney(settledValue, provider?.currencyCode ?? 'KES')} hint="Payouts already processed successfully" />
-      </div>
-
-      <div className="workspace-triptych" style={{ marginBottom: '1.5rem' }}>
-        {featureCards.map((card) => (
-          <Link key={card.title} to={card.to} className="feature-card">
-            <strong>{card.title}</strong>
-            <span>{card.body}</span>
-          </Link>
-        ))}
-      </div>
-
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Operational pulse</h2>
-              <p className="section-copy">Recent bookings, listing health, and provider-side readiness at a glance.</p>
+    <PageShell>
+      <HeroPanel
+        title={provider?.name ?? 'Provider portal'}
+        description="Run bookings, listings, payout readiness, and finance exports from a single professional workspace built for day-to-day provider operations."
+        actions={
+          <>
+            <ActionButtonLink to="/provider/listings" variant="secondary">Manage listings</ActionButtonLink>
+            <ActionButtonLink to="/provider/payouts" variant="outline">Request payout</ActionButtonLink>
+          </>
+        }
+        spotlight={
+          <div className="space-y-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Settlement posture</div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <span className="text-sm text-slate-200">Default payout route</span>
+                <Badge className="border-white/10 bg-white/10 text-white">{defaultAccount ? 'Configured' : 'Missing'}</Badge>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <span className="text-sm text-slate-200">Verification</span>
+                <Badge className="border-white/10 bg-white/10 text-white">{provider?.isVerified ? 'Verified' : 'Pending'}</Badge>
+              </div>
             </div>
           </div>
+        }
+      />
 
-          <div className="detail-grid" style={{ marginTop: 0, marginBottom: '1rem' }}>
-            <div className="detail-card">
-              <span className="detail-label">Listing status</span>
-              <strong>{activeListings} active / {draftListings} awaiting work</strong>
-            </div>
-            <div className="detail-card">
-              <span className="detail-label">Default payout account</span>
-              <strong>{defaultAccount ? `${defaultAccount.accountType.replace(/_/g, ' ')} ending ${defaultAccount.accountNumber.slice(-4)}` : 'Not configured'}</strong>
-            </div>
-            <div className="detail-card">
-              <span className="detail-label">Settlement delay</span>
-              <strong>{settingsSummary?.settlementDelayDays ?? 0} days</strong>
-            </div>
-            <div className="detail-card">
-              <span className="detail-label">Commission setting</span>
-              <strong>{((settingsSummary?.commissionBps ?? 0) / 100).toFixed(2)}%</strong>
-            </div>
-          </div>
+      <StatGrid>
+        <StatCard label="Gross booked" value={formatMoney(grossBooked, provider?.currencyCode ?? 'KES')} hint={`${bookings.length} bookings in the current working set`} icon={CircleDollarSign} />
+        <StatCard label="Upcoming services" value={upcomingBookings} hint="Paid or confirmed bookings awaiting fulfilment" icon={CalendarClock} tone="info" />
+        <StatCard label="Pending settlement" value={formatMoney(pendingPayoutValue, provider?.currencyCode ?? 'KES')} hint="Payout batches not yet completed" icon={HandCoins} tone="warning" />
+        <StatCard label="Settled" value={formatMoney(settledValue, provider?.currencyCode ?? 'KES')} hint="Payouts already processed successfully" icon={WalletCards} tone="success" />
+      </StatGrid>
 
-          <div className="table-container domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Booking</th>
-                  <th>Service date</th>
-                  <th>Total</th>
-                  <th>Status</th>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <QuickActionCard title="Manage listings" description="Create inventory, adjust pricing, and publish polished bookable experiences." to="/provider/listings" />
+        <QuickActionCard title="Generate statements" description="Export booking and payout activity into clean settlement statements for finance." to="/provider/settlement" />
+        <QuickActionCard title="Manage accounts" description="Keep payout routes, settlement preferences, and webhook integrations current." to="/provider/accounts" />
+      </div>
+
+      <WorkspaceGrid
+        main={
+          <SectionCard
+            title="Operational pulse"
+            description="Recent bookings, service dates, and revenue activity across the provider account."
+          >
+            <DataTable headers={['Booking', 'Service date', 'Total', 'Status']}>
+              {bookings.slice(0, 8).map((booking: any) => (
+                <tr key={booking.id} className="border-b border-border/60">
+                  <td className="p-4">
+                    <EntityCell title={booking.reference} subtitle={booking.id.slice(-8)} />
+                  </td>
+                  <td className="p-4 text-sm text-muted-foreground">{formatDate(booking.serviceDate)}</td>
+                  <td className="p-4 text-sm font-medium text-foreground">{formatMoney(booking.totalAmount, booking.currencyCode)}</td>
+                  <td className="p-4"><BookingStatusBadge status={booking.status} /></td>
                 </tr>
-              </thead>
-              <tbody>
-                {bookings.slice(0, 8).map((booking: any) => (
-                  <tr key={booking.id}>
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{booking.reference}</strong>
-                        <span>{booking.id.slice(-8)}</span>
-                      </div>
-                    </td>
-                    <td>{formatDate(booking.serviceDate)}</td>
-                    <td>{formatMoney(booking.totalAmount, booking.currencyCode)}</td>
-                    <td>
-                      <span className={`badge ${booking.status === 'confirmed' || booking.status === 'paid' ? 'badge-success' : booking.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                        {titleizeToken(booking.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {bookings.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="table-empty">No bookings found for this provider yet.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              ))}
+              {bookings.length === 0 && <DataTableEmpty colSpan={4} label="No bookings found for this provider yet." />}
+            </DataTable>
+          </SectionCard>
+        }
+        side={
+          <div className="space-y-6">
+            <SectionCard
+              title="Readiness"
+              description="The main setup items that affect bookings, settlement, and operational scale."
+            >
+              <InfoGrid>
+                <InfoCard label="Listing health" value={<span className="inline-flex items-center gap-2"><ListChecks className="h-4 w-4 text-primary" /> {activeListings} active / {draftListings} in setup</span>} />
+                <InfoCard label="Settlement delay" value={<span className="inline-flex items-center gap-2"><BookOpenCheck className="h-4 w-4 text-primary" /> {settingsSummary?.settlementDelayDays ?? 0} days</span>} />
+                <InfoCard label="Commission setting" value={`${((settingsSummary?.commissionBps ?? 0) / 100).toFixed(2)}%`} />
+                <InfoCard label="Payout policy" value={settingsSummary?.autoApprovePayout ? 'Auto-approval enabled' : 'Manual approval required'} />
+              </InfoGrid>
+            </SectionCard>
 
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Readiness</h2>
-              <p className="section-copy">The next things that need attention before bookings and settlements flow cleanly.</p>
-            </div>
+            <SectionCard
+              title="Operational state"
+              description="Current account posture for provider activation and payouts."
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/35 px-4 py-3">
+                  <span className="text-sm text-foreground">Provider status</span>
+                  <Badge variant={provider?.isActive ? 'success' : 'warning'}>
+                    {provider?.isActive ? 'Live' : 'Inactive'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/35 px-4 py-3">
+                  <span className="text-sm text-foreground">Verification</span>
+                  <Badge variant={provider?.isVerified ? 'info' : 'warning'}>
+                    {provider?.isVerified ? 'Verified' : 'Pending'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/35 px-4 py-3">
+                  <span className="text-sm text-foreground">Default account</span>
+                  <span className="text-sm text-muted-foreground">
+                    {defaultAccount ? `${defaultAccount.accountType.replace(/_/g, ' ')} ending ${defaultAccount.accountNumber.slice(-4)}` : 'Not configured'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/35 px-4 py-3">
+                  <span className="text-sm text-foreground">Compliance</span>
+                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Ready for provider operations
+                  </span>
+                </div>
+              </div>
+            </SectionCard>
           </div>
-
-          <div className="list-stack">
-            <div className="list-card static">
-              <strong>Provider status</strong>
-              <span>{provider?.isActive ? 'Live and available for operations' : 'Inactive'} / {provider?.isVerified ? 'Verified' : 'Pending verification'}</span>
-            </div>
-            <div className="list-card static">
-              <strong>Payout setup</strong>
-              <span>{defaultAccount ? 'Default payout route configured' : 'Add a default payout account to enable settlement requests'}</span>
-            </div>
-            <div className="list-card static">
-              <strong>Payout policy</strong>
-              <span>{settingsSummary?.autoApprovePayout ? 'Auto-approval enabled where thresholds allow' : 'Manual approval still required for payout batches'}</span>
-            </div>
-            <div className="list-card static">
-              <strong>Listings</strong>
-              <span>{activeListings > 0 ? `${activeListings} live experiences visible to customers` : 'No active listings are live yet'}</span>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
+        }
+      />
+    </PageShell>
   );
 }

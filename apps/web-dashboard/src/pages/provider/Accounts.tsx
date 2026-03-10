@@ -1,9 +1,43 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Landmark,
+  MailCheck,
+  ShieldCheck,
+  Webhook,
+} from 'lucide-react';
 import { createCallbackSubscriptionSchema, createPayoutAccountSchema, updateProviderSchema } from '@felix-travel/validation';
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@felix-travel/ui';
 import { useAuth } from '../../lib/auth-context.js';
 import { apiClient } from '../../lib/api-client.js';
 import { formatDate, getErrorMessage, titleizeToken, toOptionalTrimmed } from '../../lib/admin-utils.js';
+import {
+  CheckboxChip,
+  EmptyBlock,
+  Field,
+  FieldGrid,
+  FormSection,
+  Notice,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  SwitchField,
+  TextField,
+  TextareaField,
+} from '../../components/workspace-ui.js';
 
 type ProviderProfileForm = {
   name: string;
@@ -92,16 +126,6 @@ const EMPTY_SUBSCRIPTION_FORM: SubscriptionForm = {
   timeoutMs: '10000',
 };
 
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
-}
-
 export function ProviderAccounts() {
   const { user } = useAuth();
   const providerId = user?.providerId;
@@ -172,7 +196,14 @@ export function ProviderAccounts() {
   }, [settings]);
 
   if (!providerId) {
-    return <div className="empty-panel">No provider context is attached to this account.</div>;
+    return (
+      <PageShell>
+        <EmptyBlock
+          title="No provider context is attached to this account."
+          description="Assign a provider profile to this user before managing provider settings and integrations."
+        />
+      </PageShell>
+    );
   }
 
   const profileMutation = useMutation({
@@ -272,230 +303,215 @@ export function ProviderAccounts() {
   });
 
   return (
-    <div className="domain-page">
-      <div className="domain-page-header">
-        <div>
-          <span className="eyebrow">Provider accounts</span>
-          <h1 className="page-title">Accounts and integrations</h1>
-          <p className="page-subtitle">
-            Keep your provider profile accurate, configure payout destinations, and manage outbound webhook integrations in one secure area.
-          </p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Provider accounts"
+        title="Accounts and integrations"
+        description="Keep public provider details accurate, control settlement preferences, and manage payout destinations and outbound webhooks from one secure workspace."
+      />
 
-      <div className="dashboard-stat-grid">
-        <StatCard label="Payout accounts" value={payoutAccounts.length} hint="Registered settlement destinations" />
-        <StatCard label="Default route" value={payoutAccounts.some((account: any) => account.isDefault) ? 'Ready' : 'Missing'} hint="A default account is required for payout requests" />
-        <StatCard label="Webhook subscriptions" value={subscriptions.length} hint="Outbound integration endpoints" />
-        <StatCard label="Reserve balance" value={provider ? titleizeToken(provider.isVerified ? 'verified' : 'pending') : 'Pending'} hint="Provider verification and reserve context" />
-      </div>
+      {(message || errorMessage) ? (
+        <Notice message={errorMessage ?? message ?? ''} variant={errorMessage ? 'destructive' : 'success'} />
+      ) : null}
 
-      {(message || errorMessage) && (
-        <div className={errorMessage ? 'alert-error' : 'alert-success'} style={{ marginBottom: '1rem' }}>
-          {errorMessage ?? message}
-        </div>
-      )}
+      <StatGrid>
+        <StatCard label="Payout accounts" value={payoutAccounts.length} hint="Registered settlement destinations" icon={Landmark} />
+        <StatCard label="Default route" value={payoutAccounts.some((account: any) => account.isDefault) ? 'Ready' : 'Missing'} hint="A default account is required for payout requests" icon={ShieldCheck} tone="warning" />
+        <StatCard label="Webhook subscriptions" value={subscriptions.length} hint="Outbound operational integrations" icon={Webhook} tone="info" />
+        <StatCard label="Verification" value={provider ? titleizeToken(provider.isVerified ? 'verified' : 'pending') : 'Pending'} hint="Current provider verification posture" icon={MailCheck} />
+      </StatGrid>
 
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Provider profile</h2>
-              <p className="section-copy">Public-facing and operational contact details.</p>
-            </div>
-          </div>
-          <div className="form-grid">
-            <label className="field">
-              <span>Name</span>
-              <input value={profileForm.name} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Slug</span>
-              <input value={profileForm.slug} onChange={(event) => setProfileForm((current) => ({ ...current, slug: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Email</span>
-              <input value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Phone</span>
-              <input value={profileForm.phone} onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Country</span>
-              <input value={profileForm.countryCode} maxLength={2} onChange={(event) => setProfileForm((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} />
-            </label>
-            <label className="field">
-              <span>Currency</span>
-              <input value={profileForm.currencyCode} maxLength={3} onChange={(event) => setProfileForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} />
-            </label>
-            <label className="field field-span-2">
-              <span>Website</span>
-              <input value={profileForm.websiteUrl} onChange={(event) => setProfileForm((current) => ({ ...current, websiteUrl: event.target.value }))} />
-            </label>
-            <label className="field field-span-2">
-              <span>Description</span>
-              <textarea value={profileForm.description} rows={4} onChange={(event) => setProfileForm((current) => ({ ...current, description: event.target.value }))} />
-            </label>
-          </div>
-          <button className="btn-primary" onClick={() => void profileMutation.mutateAsync()} disabled={profileMutation.isPending}>
-            {profileMutation.isPending ? 'Saving...' : 'Save profile'}
-          </button>
-        </section>
+      <Tabs defaultValue="profile" className="space-y-5">
+        <TabsList className="w-full justify-start overflow-auto">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="settlement">Settlement</TabsTrigger>
+          <TabsTrigger value="payouts">Payout accounts</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+        </TabsList>
 
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Settlement settings</h2>
-              <p className="section-copy">Configure how payout operations should behave.</p>
-            </div>
-          </div>
+        <TabsContent value="profile">
+          <SectionCard
+            title="Provider profile"
+            description="Public-facing and operational contact details used across partner management."
+            action={
+              <Button onClick={() => void profileMutation.mutateAsync()} loading={profileMutation.isPending}>
+                Save profile
+              </Button>
+            }
+          >
+            <FormSection title="Core identity" description="These details define how the provider is presented operationally and commercially.">
+              <FieldGrid>
+                <TextField label="Name" value={profileForm.name} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} />
+                <TextField label="Slug" value={profileForm.slug} onChange={(event) => setProfileForm((current) => ({ ...current, slug: event.target.value }))} />
+                <TextField label="Email" value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} />
+                <TextField label="Phone" value={profileForm.phone} onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))} />
+                <TextField label="Country" value={profileForm.countryCode} maxLength={2} onChange={(event) => setProfileForm((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} />
+                <TextField label="Currency" value={profileForm.currencyCode} maxLength={3} onChange={(event) => setProfileForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} />
+                <TextField label="Website" className="md:col-span-2" value={profileForm.websiteUrl} onChange={(event) => setProfileForm((current) => ({ ...current, websiteUrl: event.target.value }))} />
+                <TextareaField label="Description" className="md:col-span-2" rows={5} value={profileForm.description} onChange={(event) => setProfileForm((current) => ({ ...current, description: event.target.value }))} />
+              </FieldGrid>
+            </FormSection>
+          </SectionCard>
+        </TabsContent>
 
-          <div className="form-grid">
-            <label className="field">
-              <span>Settlement delay days</span>
-              <input value={settingsForm.settlementDelayDays} type="number" onChange={(event) => setSettingsForm((current) => ({ ...current, settlementDelayDays: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Commission bps</span>
-              <input value={settingsForm.commissionBps} type="number" onChange={(event) => setSettingsForm((current) => ({ ...current, commissionBps: event.target.value }))} />
-            </label>
-          </div>
-          <div className="toggle-grid">
-            <label className="toggle-card">
-              <input type="checkbox" checked={settingsForm.autoApprovePayout} onChange={(event) => setSettingsForm((current) => ({ ...current, autoApprovePayout: event.target.checked }))} />
-              <span>Auto-approve payouts</span>
-            </label>
-            <label className="toggle-card">
-              <input type="checkbox" checked={settingsForm.notifyOnBooking} onChange={(event) => setSettingsForm((current) => ({ ...current, notifyOnBooking: event.target.checked }))} />
-              <span>Notify on booking</span>
-            </label>
-            <label className="toggle-card">
-              <input type="checkbox" checked={settingsForm.notifyOnPayout} onChange={(event) => setSettingsForm((current) => ({ ...current, notifyOnPayout: event.target.checked }))} />
-              <span>Notify on payout</span>
-            </label>
-          </div>
-          <button className="btn-primary" onClick={() => void settingsMutation.mutateAsync()} disabled={settingsMutation.isPending}>
-            {settingsMutation.isPending ? 'Saving...' : 'Save settings'}
-          </button>
-        </section>
-      </div>
+        <TabsContent value="settlement">
+          <SectionCard
+            title="Settlement settings"
+            description="Configure how payout operations and provider notifications should behave."
+            action={
+              <Button onClick={() => void settingsMutation.mutateAsync()} loading={settingsMutation.isPending}>
+                Save settings
+              </Button>
+            }
+          >
+            <div className="space-y-6">
+              <FormSection title="Commercial settings" description="These values control how settlement batches and payout automation behave.">
+                <FieldGrid>
+                  <TextField label="Settlement delay days" type="number" value={settingsForm.settlementDelayDays} onChange={(event) => setSettingsForm((current) => ({ ...current, settlementDelayDays: event.target.value }))} />
+                  <TextField label="Commission bps" type="number" value={settingsForm.commissionBps} onChange={(event) => setSettingsForm((current) => ({ ...current, commissionBps: event.target.value }))} />
+                </FieldGrid>
+              </FormSection>
 
-      <div className="workspace-triptych">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Payout accounts</h2>
-              <p className="section-copy">Add settlement destinations for disbursements.</p>
-            </div>
-          </div>
-          <div className="list-stack">
-            {(payoutAccounts as any[]).map((account) => (
-              <div key={account.id} className="list-card static">
-                <strong>{titleizeToken(account.accountType)} ending {account.accountNumber.slice(-4)}</strong>
-                <span>{account.accountName} / {account.isDefault ? 'Default' : 'Secondary'} / {account.isVerified ? 'Verified' : 'Pending verification'}</span>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <SwitchField label="Auto-approve payouts" description="Allow eligible payouts to progress without manual approval." checked={settingsForm.autoApprovePayout} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, autoApprovePayout: value }))} />
+                <SwitchField label="Notify on booking" description="Send provider-facing notifications when bookings are created or updated." checked={settingsForm.notifyOnBooking} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, notifyOnBooking: value }))} />
+                <SwitchField label="Notify on payout" description="Send provider-facing notifications when payout status changes." checked={settingsForm.notifyOnPayout} onCheckedChange={(value) => setSettingsForm((current) => ({ ...current, notifyOnPayout: value }))} />
               </div>
-            ))}
-            {(payoutAccounts as any[]).length === 0 && <div className="empty-panel">No payout accounts configured.</div>}
-          </div>
-          <div className="form-grid">
-            <label className="field">
-              <span>Account type</span>
-              <select value={payoutAccountForm.accountType} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountType: event.target.value as PayoutAccountForm['accountType'] }))}>
-                <option value="mobile_money">Mobile money</option>
-                <option value="bank_account">Bank account</option>
-                <option value="remittance">Remittance</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Network code</span>
-              <input value={payoutAccountForm.networkCode} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, networkCode: event.target.value }))} placeholder="MPESA" />
-            </label>
-            <label className="field">
-              <span>Account number</span>
-              <input value={payoutAccountForm.accountNumber} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountNumber: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Account name</span>
-              <input value={payoutAccountForm.accountName} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountName: event.target.value }))} />
-            </label>
-          </div>
-          <label className="toggle-card" style={{ marginBottom: '1rem' }}>
-            <input type="checkbox" checked={payoutAccountForm.isDefault} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, isDefault: event.target.checked }))} />
-            <span>Use as default payout route</span>
-          </label>
-          <button className="btn-secondary" onClick={() => void payoutAccountMutation.mutateAsync()} disabled={payoutAccountMutation.isPending}>
-            {payoutAccountMutation.isPending ? 'Adding...' : 'Add payout account'}
-          </button>
-        </section>
-
-        <section className="workspace-panel" style={{ gridColumn: 'span 2' }}>
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Webhooks and integrations</h2>
-              <p className="section-copy">Configure outbound callbacks for operational events.</p>
             </div>
-          </div>
+          </SectionCard>
+        </TabsContent>
 
-          <div className="list-stack">
-            {(subscriptions as any[]).map((subscription) => (
-              <div key={subscription.id} className="list-card static">
-                <strong>{subscription.url}</strong>
-                <span>{subscription.events.join(', ')} / secret ending {subscription.secretHint} / updated {formatDate(subscription.updatedAt)}</span>
-                <div className="action-row">
-                  <button className="btn-secondary" onClick={() => void toggleSubscriptionMutation.mutateAsync({ subscriptionId: subscription.id, isActive: !subscription.isActive })}>
-                    {subscription.isActive ? 'Disable' : 'Enable'}
-                  </button>
-                  <button className="btn-secondary" onClick={() => void apiClient.providers.testCallbackSubscription(providerId, subscription.id)}>
-                    Test delivery
-                  </button>
-                </div>
+        <TabsContent value="payouts">
+          <SectionCard
+            title="Payout accounts"
+            description="Register the destinations used for provider settlement disbursements."
+            action={
+              <Button variant="outline" onClick={() => void payoutAccountMutation.mutateAsync()} loading={payoutAccountMutation.isPending}>
+                Add payout account
+              </Button>
+            }
+          >
+            <div className="space-y-6">
+              <div className="grid gap-3">
+                {(payoutAccounts as any[]).map((account) => (
+                  <div key={account.id} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">
+                          {titleizeToken(account.accountType)} ending {account.accountNumber.slice(-4)}
+                        </div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          {account.accountName} / {account.isDefault ? 'Default' : 'Secondary'} / {account.isVerified ? 'Verified' : 'Pending verification'}
+                        </div>
+                      </div>
+                      <Landmark className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                ))}
+                {(payoutAccounts as any[]).length === 0 && (
+                  <EmptyBlock title="No payout accounts configured" description="Add at least one payout destination to enable provider settlement requests." />
+                )}
               </div>
-            ))}
-            {(subscriptions as any[]).length === 0 && <div className="empty-panel">No webhook subscriptions configured.</div>}
-          </div>
 
-          <div className="form-grid">
-            <label className="field field-span-2">
-              <span>Callback URL</span>
-              <input value={subscriptionForm.url} onChange={(event) => setSubscriptionForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://partner.example/webhooks/felix" />
-            </label>
-            <label className="field">
-              <span>Max retries</span>
-              <input value={subscriptionForm.maxRetries} type="number" onChange={(event) => setSubscriptionForm((current) => ({ ...current, maxRetries: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Timeout (ms)</span>
-              <input value={subscriptionForm.timeoutMs} type="number" onChange={(event) => setSubscriptionForm((current) => ({ ...current, timeoutMs: event.target.value }))} />
-            </label>
-            <label className="field field-span-2">
-              <span>Subscribed events</span>
-              <div className="tag-picker">
-                {CALLBACK_EVENTS.map((eventName) => (
-                  <label key={eventName} className="choice-chip">
-                    <input
-                      type="checkbox"
+              <FormSection title="Add account" description="Capture the destination details used by your payout processor.">
+                <FieldGrid>
+                  <Field label="Account type">
+                    <Select value={payoutAccountForm.accountType} onValueChange={(value) => setPayoutAccountForm((current) => ({ ...current, accountType: value as PayoutAccountForm['accountType'] }))}>
+                      <SelectTrigger><SelectValue placeholder="Select account type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mobile_money">Mobile money</SelectItem>
+                        <SelectItem value="bank_account">Bank account</SelectItem>
+                        <SelectItem value="remittance">Remittance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <TextField label="Network code" value={payoutAccountForm.networkCode} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, networkCode: event.target.value }))} placeholder="MPESA" />
+                  <TextField label="Account number" value={payoutAccountForm.accountNumber} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountNumber: event.target.value }))} />
+                  <TextField label="Account name" value={payoutAccountForm.accountName} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountName: event.target.value }))} />
+                  <TextField label="Country" value={payoutAccountForm.countryCode} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} />
+                  <TextField label="Currency" value={payoutAccountForm.currencyCode} onChange={(event) => setPayoutAccountForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} />
+                </FieldGrid>
+                <SwitchField label="Use as default payout route" description="Set this account as the default destination for payout requests." checked={payoutAccountForm.isDefault} onCheckedChange={(value) => setPayoutAccountForm((current) => ({ ...current, isDefault: value }))} />
+              </FormSection>
+            </div>
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="webhooks">
+          <SectionCard
+            title="Webhooks and integrations"
+            description="Manage outbound callbacks for booking, payment, refund, and payout events."
+            action={
+              <Button variant="outline" onClick={() => void subscriptionMutation.mutateAsync()} loading={subscriptionMutation.isPending}>
+                Create webhook subscription
+              </Button>
+            }
+          >
+            <div className="space-y-6">
+              <div className="grid gap-3">
+                {(subscriptions as any[]).map((subscription) => (
+                  <div key={subscription.id} className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-foreground">{subscription.url}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            secret ending {subscription.secretHint} / updated {formatDate(subscription.updatedAt)}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => void toggleSubscriptionMutation.mutateAsync({ subscriptionId: subscription.id, isActive: !subscription.isActive })}
+                        >
+                          {subscription.isActive ? 'Disable' : 'Enable'}
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {subscription.events.map((eventName: string) => (
+                          <span key={eventName} className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs text-muted-foreground">
+                            {eventName}
+                          </span>
+                        ))}
+                      </div>
+                      <Button variant="secondary" onClick={() => void apiClient.providers.testCallbackSubscription(providerId, subscription.id)}>
+                        Test delivery
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {(subscriptions as any[]).length === 0 && (
+                  <EmptyBlock title="No webhook subscriptions configured" description="Create a subscription to send operational events into your internal systems." />
+                )}
+              </div>
+
+              <FormSection title="Create subscription" description="Choose the callback destination and event coverage for the integration.">
+                <FieldGrid>
+                  <TextField label="Callback URL" className="md:col-span-2" value={subscriptionForm.url} onChange={(event) => setSubscriptionForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://partner.example/webhooks/felix" />
+                  <TextField label="Max retries" type="number" value={subscriptionForm.maxRetries} onChange={(event) => setSubscriptionForm((current) => ({ ...current, maxRetries: event.target.value }))} />
+                  <TextField label="Timeout (ms)" type="number" value={subscriptionForm.timeoutMs} onChange={(event) => setSubscriptionForm((current) => ({ ...current, timeoutMs: event.target.value }))} />
+                </FieldGrid>
+                <div className="flex flex-wrap gap-2">
+                  {CALLBACK_EVENTS.map((eventName) => (
+                    <CheckboxChip
+                      key={eventName}
                       checked={subscriptionForm.events.includes(eventName)}
-                      onChange={(event) => {
+                      onCheckedChange={(checked) => {
                         setSubscriptionForm((current) => ({
                           ...current,
-                          events: event.target.checked
+                          events: checked
                             ? [...current.events, eventName]
                             : current.events.filter((item) => item !== eventName),
                         }));
                       }}
+                      label={eventName}
                     />
-                    <span>{eventName}</span>
-                  </label>
-                ))}
-              </div>
-            </label>
-          </div>
-          <button className="btn-secondary" onClick={() => void subscriptionMutation.mutateAsync()} disabled={subscriptionMutation.isPending}>
-            {subscriptionMutation.isPending ? 'Creating...' : 'Create webhook subscription'}
-          </button>
-        </section>
-      </div>
-    </div>
+                  ))}
+                </div>
+              </FormSection>
+            </div>
+          </SectionCard>
+        </TabsContent>
+      </Tabs>
+    </PageShell>
   );
 }

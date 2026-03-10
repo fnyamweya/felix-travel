@@ -1,31 +1,34 @@
 import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../lib/cn.js';
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
+const badgeVariants = cva(
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  {
+    variants: {
+      variant: {
+        default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
+        outline: 'text-foreground',
+        success: 'border-transparent bg-emerald-100 text-emerald-900',
+        warning: 'border-transparent bg-amber-100 text-amber-900',
+        info: 'border-transparent bg-sky-100 text-sky-900',
+        neutral: 'border-border bg-muted text-muted-foreground',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  }
+);
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
+
+export function Badge({ className, variant, ...props }: BadgeProps) {
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
-  default: 'bg-gray-100 text-gray-800',
-  success: 'bg-green-100 text-green-800',
-  warning: 'bg-yellow-100 text-yellow-800',
-  error: 'bg-red-100 text-red-800',
-  info: 'bg-blue-100 text-blue-800',
-  neutral: 'bg-gray-50 text-gray-600 border border-gray-200',
-};
-
-export function Badge({ variant = 'default', className, children, ...props }: BadgeProps) {
-  return (
-    <span
-      className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', variantClasses[variant], className)}
-      {...props}
-    >
-      {children}
-    </span>
-  );
-}
-
-/** Map booking status to badge variant */
 export function BookingStatusBadge({ status }: { status: string }) {
   const variantMap: Record<string, BadgeProps['variant']> = {
     draft: 'neutral',
@@ -36,8 +39,8 @@ export function BookingStatusBadge({ status }: { status: string }) {
     confirmed: 'success',
     partially_refunded: 'warning',
     refunded: 'neutral',
-    cancelled: 'error',
-    failed: 'error',
+    cancelled: 'destructive',
+    failed: 'destructive',
     payout_pending: 'warning',
     payout_processing: 'info',
     payout_completed: 'success',
@@ -45,7 +48,6 @@ export function BookingStatusBadge({ status }: { status: string }) {
   return <Badge variant={variantMap[status] ?? 'neutral'}>{status.replace(/_/g, ' ')}</Badge>;
 }
 
-/** Map payment status to badge variant */
 export function PaymentStatusBadge({ status }: { status: string }) {
   const variantMap: Record<string, BadgeProps['variant']> = {
     initiated: 'neutral',
@@ -55,8 +57,8 @@ export function PaymentStatusBadge({ status }: { status: string }) {
     succeeded: 'success',
     partially_refunded: 'warning',
     refunded: 'neutral',
-    failed: 'error',
-    reversed: 'error',
+    failed: 'destructive',
+    reversed: 'destructive',
   };
   return <Badge variant={variantMap[status] ?? 'neutral'}>{status.replace(/_/g, ' ')}</Badge>;
 }

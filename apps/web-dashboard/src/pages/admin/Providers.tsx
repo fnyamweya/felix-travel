@@ -1,9 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Building2, Globe2, Landmark, ShieldCheck } from 'lucide-react';
 import { createProviderSchema, updateProviderSchema } from '@felix-travel/validation';
 import type { ServiceProvider } from '@felix-travel/types';
+import { Badge, Button } from '@felix-travel/ui';
 import { apiClient } from '../../lib/api-client.js';
-import { formatMoney, formatDate, getErrorMessage, toOptionalTrimmed } from '../../lib/admin-utils.js';
+import { formatDate, formatMoney, getErrorMessage, toOptionalTrimmed } from '../../lib/admin-utils.js';
+import {
+  DataTable,
+  DataTableEmpty,
+  EmptyBlock,
+  EntityCell,
+  InfoCard,
+  InfoGrid,
+  Notice,
+  PageHeader,
+  PageShell,
+  SearchField,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  TextField,
+  TextareaField,
+  WorkspaceGrid,
+} from '../../components/workspace-ui.js';
 
 type ProviderFormState = {
   name: string;
@@ -26,16 +46,6 @@ const EMPTY_FORM: ProviderFormState = {
   currencyCode: 'KES',
   websiteUrl: '',
 };
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
-}
 
 function buildCreatePayload(form: ProviderFormState) {
   return {
@@ -94,14 +104,11 @@ export function AdminProviders() {
   const selectedProvider = providers.find((provider: ServiceProvider) => provider.id === selectedProviderId) ?? null;
 
   useEffect(() => {
-    if (!firstProvider) return;
-    if (isCreating) return;
-
+    if (!firstProvider || isCreating) return;
     if (!selectedProviderId) {
       setSelectedProviderId(firstProvider.id);
       return;
     }
-
     if (!selectedProvider) {
       setSelectedProviderId(firstProvider.id);
     }
@@ -113,7 +120,6 @@ export function AdminProviders() {
       setFormError(null);
       return;
     }
-
     setForm(EMPTY_FORM);
   }, [selectedProvider, isCreating]);
 
@@ -167,199 +173,122 @@ export function AdminProviders() {
   const busy = createProvider.isPending || updateProvider.isPending;
 
   return (
-    <div className="domain-page">
-      <div className="domain-page-header">
-        <div>
-          <span className="eyebrow">Provider domain</span>
-          <h1 className="page-title">Provider management</h1>
-          <p className="page-subtitle">
-            Create provider records, keep commercial details current, and track which markets are active before payouts and bookings hit production.
-          </p>
-        </div>
-        <div className="page-actions">
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setIsCreating(true);
-              setSelectedProviderId(null);
-              setForm(EMPTY_FORM);
-              setNotice('Ready to add a new provider.');
-              setFormError(null);
-            }}
+    <PageShell>
+      <PageHeader
+        eyebrow="Provider domain"
+        title="Provider management"
+        description="Create provider records, keep commercial details current, and track reserve and market coverage through a cleaner admin workspace."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreating(true);
+                setSelectedProviderId(null);
+                setForm(EMPTY_FORM);
+                setNotice('Ready to add a new provider.');
+                setFormError(null);
+              }}
+            >
+              New provider
+            </Button>
+            <Button onClick={() => void (selectedProvider && !isCreating ? updateProvider.mutateAsync() : createProvider.mutateAsync())} loading={busy}>
+              {selectedProvider && !isCreating ? 'Save changes' : 'Create provider'}
+            </Button>
+          </>
+        }
+      />
+
+      {(notice || formError) ? (
+        <Notice message={formError ?? notice ?? ''} variant={formError ? 'destructive' : 'success'} />
+      ) : null}
+
+      <StatGrid>
+        <StatCard label="Total providers" value={providers.length} hint={`${activeProviders} active in the marketplace`} icon={Building2} />
+        <StatCard label="Verified" value={verifiedProviders} hint="Operational providers with verified status" icon={ShieldCheck} tone="success" />
+        <StatCard label="Reserve exposure" value={formatMoney(reserveExposure)} hint="Outstanding reserve balances across providers" icon={Landmark} tone="warning" />
+        <StatCard label="Country coverage" value={coverage} hint="Distinct country codes in the provider base" icon={Globe2} tone="info" />
+      </StatGrid>
+
+      <WorkspaceGrid
+        main={
+          <SectionCard
+            title="Provider directory"
+            description="Search by name, slug, email, or market and then open the provider record you want to manage."
+            action={<SearchField value={search} onChange={setSearch} placeholder="Search providers" />}
           >
-            New provider
-          </button>
-          <button className="btn-primary" onClick={() => void (selectedProvider && !isCreating ? updateProvider.mutateAsync() : createProvider.mutateAsync())} disabled={busy}>
-            {busy ? 'Saving...' : selectedProvider && !isCreating ? 'Save changes' : 'Create provider'}
-          </button>
-        </div>
-      </div>
-
-      <div className="dashboard-stat-grid">
-        <StatCard label="Total providers" value={providers.length} hint={`${activeProviders} active in the marketplace`} />
-        <StatCard label="Verified" value={verifiedProviders} hint="Operational providers with verified status" />
-        <StatCard label="Reserve exposure" value={formatMoney(reserveExposure)} hint="Outstanding reserve balances across providers" />
-        <StatCard label="Country coverage" value={coverage} hint="Distinct country codes in the provider base" />
-      </div>
-
-      {(notice || formError) && (
-        <div className={formError ? 'alert-error' : 'alert-success'} style={{ marginBottom: '1rem' }}>
-          {formError ?? notice}
-        </div>
-      )}
-
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">Provider directory</h2>
-              <p className="section-copy">Search by name, slug, email, or market. Select a row to edit its core profile.</p>
-            </div>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search providers"
-              className="search-input"
-            />
-          </div>
-
-          <div className="table-container domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Provider</th>
-                  <th>Market</th>
-                  <th>Status</th>
-                  <th>Reserve</th>
-                  <th>Updated</th>
+            <DataTable headers={['Provider', 'Market', 'Status', 'Reserve', 'Updated']}>
+              {isLoading && <DataTableEmpty colSpan={5} label="Loading providers..." />}
+              {!isLoading && filteredProviders.length === 0 && <DataTableEmpty colSpan={5} label="No providers match your search." />}
+              {filteredProviders.map((provider: ServiceProvider) => (
+                <tr
+                  key={provider.id}
+                  className={provider.id === selectedProviderId ? 'border-b border-border/60 bg-primary/5' : 'border-b border-border/60'}
+                  onClick={() => {
+                    setIsCreating(false);
+                    setSelectedProviderId(provider.id);
+                  }}
+                >
+                  <td className="cursor-pointer p-4">
+                    <EntityCell title={provider.name} subtitle={provider.email} />
+                  </td>
+                  <td className="p-4">
+                    <EntityCell title={provider.countryCode} subtitle={provider.currencyCode} />
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={provider.isActive ? 'success' : 'secondary'}>{provider.isActive ? 'Active' : 'Inactive'}</Badge>
+                      <Badge variant={provider.isVerified ? 'info' : 'warning'}>{provider.isVerified ? 'Verified' : 'Pending'}</Badge>
+                    </div>
+                  </td>
+                  <td className="p-4 text-sm font-medium text-foreground">{formatMoney(provider.reserveBalanceAmount, provider.currencyCode)}</td>
+                  <td className="p-4 text-sm text-muted-foreground">{formatDate(provider.updatedAt)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {isLoading && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">Loading providers...</td>
-                  </tr>
-                )}
-                {!isLoading && filteredProviders.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">No providers match your search.</td>
-                  </tr>
-                )}
-                {filteredProviders.map((provider: ServiceProvider) => (
-                  <tr
-                    key={provider.id}
-                    className={provider.id === selectedProviderId ? 'table-row-selected' : ''}
-                    onClick={() => {
-                      setIsCreating(false);
-                      setSelectedProviderId(provider.id);
-                    }}
-                  >
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{provider.name}</strong>
-                        <span>{provider.email}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{provider.countryCode}</strong>
-                        <span>{provider.currencyCode}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="stack-inline">
-                        <span className={`badge ${provider.isActive ? 'badge-success' : 'badge-neutral'}`}>
-                          {provider.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                        <span className={`badge ${provider.isVerified ? 'badge-info' : 'badge-warning'}`}>
-                          {provider.isVerified ? 'Verified' : 'Pending'}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{formatMoney(provider.reserveBalanceAmount, provider.currencyCode)}</td>
-                    <td>{formatDate(provider.updatedAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              ))}
+            </DataTable>
+          </SectionCard>
+        }
+        side={
+          <SectionCard
+            title={selectedProvider && !isCreating ? 'Edit provider' : 'Create provider'}
+            description="Provider records are validated against the shared schema before any update is sent to the API."
+          >
+            <div className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <TextField label="Name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Savannah Air Safaris" />
+                <TextField label="Slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="savannah-air-safaris" />
+                <TextField label="Email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="ops@provider.com" />
+                <TextField label="Phone" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="+254700000000" />
+                <TextField label="Country code" value={form.countryCode} maxLength={2} onChange={(event) => setForm((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} placeholder="KE" />
+                <TextField label="Currency" value={form.currencyCode} maxLength={3} onChange={(event) => setForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} placeholder="KES" />
+                <TextField label="Website" className="md:col-span-2" value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} placeholder="https://provider.example" />
+                <TextareaField
+                  label="Description"
+                  className="md:col-span-2"
+                  rows={5}
+                  value={form.description}
+                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  placeholder="Notes about the provider's inventory, market focus, or operational requirements."
+                />
+              </div>
 
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">{selectedProvider && !isCreating ? 'Edit provider' : 'Create provider'}</h2>
-              <p className="section-copy">
-                Core details are validated against the provider schema before they are sent to the API.
-              </p>
+              {selectedProvider && !isCreating ? (
+                <InfoGrid>
+                  <InfoCard label="Created" value={formatDate(selectedProvider.createdAt)} />
+                  <InfoCard label="Last updated" value={formatDate(selectedProvider.updatedAt)} />
+                  <InfoCard label="Reserve balance" value={formatMoney(selectedProvider.reserveBalanceAmount, selectedProvider.currencyCode)} />
+                  <InfoCard label="Operational status" value={selectedProvider.isActive ? 'Accepting business' : 'Inactive'} />
+                </InfoGrid>
+              ) : (
+                <EmptyBlock
+                  title="Create a new provider"
+                  description="Complete the commercial and contact details, then create the provider record."
+                />
+              )}
             </div>
-            {selectedProvider && !isCreating && (
-              <span className="badge badge-neutral">ID {selectedProvider.id.slice(-8)}</span>
-            )}
-          </div>
-
-          <div className="form-grid">
-            <label className="field">
-              <span>Name</span>
-              <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Savannah Air Safaris" />
-            </label>
-            <label className="field">
-              <span>Slug</span>
-              <input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="savannah-air-safaris" />
-            </label>
-            <label className="field">
-              <span>Email</span>
-              <input value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="ops@provider.com" />
-            </label>
-            <label className="field">
-              <span>Phone</span>
-              <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="+254700000000" />
-            </label>
-            <label className="field">
-              <span>Country code</span>
-              <input value={form.countryCode} maxLength={2} onChange={(event) => setForm((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} placeholder="KE" />
-            </label>
-            <label className="field">
-              <span>Currency</span>
-              <input value={form.currencyCode} maxLength={3} onChange={(event) => setForm((current) => ({ ...current, currencyCode: event.target.value.toUpperCase() }))} placeholder="KES" />
-            </label>
-            <label className="field field-span-2">
-              <span>Website</span>
-              <input value={form.websiteUrl} onChange={(event) => setForm((current) => ({ ...current, websiteUrl: event.target.value }))} placeholder="https://provider.example" />
-            </label>
-            <label className="field field-span-2">
-              <span>Description</span>
-              <textarea
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                rows={5}
-                placeholder="Notes about the provider's inventory, market focus, or operational requirements."
-              />
-            </label>
-          </div>
-
-          {selectedProvider && !isCreating && (
-            <div className="detail-grid">
-              <div className="detail-card">
-                <span className="detail-label">Created</span>
-                <strong>{formatDate(selectedProvider.createdAt)}</strong>
-              </div>
-              <div className="detail-card">
-                <span className="detail-label">Last updated</span>
-                <strong>{formatDate(selectedProvider.updatedAt)}</strong>
-              </div>
-              <div className="detail-card">
-                <span className="detail-label">Reserve balance</span>
-                <strong>{formatMoney(selectedProvider.reserveBalanceAmount, selectedProvider.currencyCode)}</strong>
-              </div>
-              <div className="detail-card">
-                <span className="detail-label">Operational status</span>
-                <strong>{selectedProvider.isActive ? 'Accepting business' : 'Inactive'}</strong>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+          </SectionCard>
+        }
+      />
+    </PageShell>
   );
 }

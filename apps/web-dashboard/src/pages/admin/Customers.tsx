@@ -1,8 +1,28 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { KeyRound, ShieldOff, ShieldPlus, Users } from 'lucide-react';
 import { inviteCreateSchema } from '@felix-travel/validation';
+import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@felix-travel/ui';
 import { apiClient } from '../../lib/api-client.js';
 import { formatDate, getErrorMessage, titleizeToken } from '../../lib/admin-utils.js';
+import {
+  DataTable,
+  DataTableEmpty,
+  EmptyBlock,
+  EntityCell,
+  Field,
+  InfoCard,
+  InfoGrid,
+  Notice,
+  PageHeader,
+  PageShell,
+  SearchField,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  TextField,
+  WorkspaceGrid,
+} from '../../components/workspace-ui.js';
 
 type AccessFormState = {
   inviteEmail: string;
@@ -28,16 +48,6 @@ const INITIAL_FORM: AccessFormState = {
   assignRole: 'agent',
   assignProviderId: '',
 };
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="dashboard-stat-card">
-      <span className="dashboard-stat-label">{label}</span>
-      <strong className="dashboard-stat-value">{value}</strong>
-      <span className="dashboard-stat-hint">{hint}</span>
-    </div>
-  );
-}
 
 export function AdminCustomers() {
   const queryClient = useQueryClient();
@@ -127,228 +137,178 @@ export function AdminCustomers() {
   });
 
   return (
-    <div className="domain-page">
-      <div className="domain-page-header">
-        <div>
-          <span className="eyebrow">Access domain</span>
-          <h1 className="page-title">Access management</h1>
-          <p className="page-subtitle">
-            Manage operational users from one place: invite new teammates, attach provider access, and suspend accounts that should not transact.
-          </p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Access domain"
+        title="Access management"
+        description="Manage operational users from one place: invite teammates, attach provider access, and suspend accounts that should not transact."
+      />
 
-      <div className="dashboard-stat-grid">
-        <StatCard label="Users" value={users.length} hint={`${accessUsers} operational users across admin, agent, and provider roles`} />
-        <StatCard label="Disabled" value={disabledUsers} hint="Accounts currently blocked from signing in" />
-        <StatCard label="Provider users" value={providerUsers} hint="Users attached to provider-side operations" />
-        <StatCard label="Providers" value={providers.length} hint="Available provider contexts for assignments and invites" />
-      </div>
+      {(message || errorMessage) ? (
+        <Notice message={errorMessage ?? message ?? ''} variant={errorMessage ? 'destructive' : 'success'} />
+      ) : null}
 
-      {(message || errorMessage) && (
-        <div className={errorMessage ? 'alert-error' : 'alert-success'} style={{ marginBottom: '1rem' }}>
-          {errorMessage ?? message}
-        </div>
-      )}
+      <StatGrid>
+        <StatCard label="Users" value={users.length} hint={`${accessUsers} operational users across admin, agent, and provider roles`} icon={Users} />
+        <StatCard label="Disabled" value={disabledUsers} hint="Accounts currently blocked from signing in" icon={ShieldOff} tone="warning" />
+        <StatCard label="Provider users" value={providerUsers} hint="Users attached to provider-side operations" icon={ShieldPlus} tone="info" />
+        <StatCard label="Providers" value={providers.length} hint="Available provider contexts for assignments and invites" icon={KeyRound} />
+      </StatGrid>
 
-      <div className="domain-grid">
-        <section className="workspace-panel">
-          <div className="workspace-panel-header">
-            <div>
-              <h2 className="section-title">User roster</h2>
-              <p className="section-copy">Filter accounts by state, then select one to assign access or suspend activity.</p>
-            </div>
-            <div className="toolbar-inline">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search email, role, phone, or ID"
-                className="search-input"
-              />
-              <select value={status} onChange={(event) => setStatus(event.target.value as 'all' | 'active' | 'disabled')} className="compact-select">
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="disabled">Disabled</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="table-container domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Contact</th>
-                  <th>Status</th>
-                  <th>Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">Loading users...</td>
-                  </tr>
-                )}
-                {!isLoading && filteredUsers.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="table-empty">No users match the current filters.</td>
-                  </tr>
-                )}
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={user.id === selectedUserId ? 'table-row-selected' : ''}
-                    onClick={() => setSelectedUserId(user.id)}
-                  >
-                    <td>
-                      <div className="entity-cell">
-                        <strong>{user.email}</strong>
-                        <span>{user.id.slice(-8)}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge badge-neutral">{titleizeToken(user.role)}</span>
-                    </td>
-                    <td>{user.phone ?? 'No phone set'}</td>
-                    <td>
-                      <span className={`badge ${user.isActive ? 'badge-success' : 'badge-danger'}`}>
-                        {user.isActive ? 'Active' : 'Disabled'}
-                      </span>
-                    </td>
-                    <td>{formatDate(user.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="workspace-panel workspace-panel-sticky">
-          <div className="stack-panel">
-            <div className="panel-block">
-              <div className="workspace-panel-header">
-                <div>
-                  <h2 className="section-title">Invite operator</h2>
-                  <p className="section-copy">Send access invites for agents or provider-side teammates.</p>
+      <WorkspaceGrid
+        main={
+          <SectionCard
+            title="User roster"
+            description="Filter operational accounts by state, then select one to manage access or account state."
+            action={
+              <div className="flex flex-wrap gap-3">
+                <SearchField value={query} onChange={setQuery} placeholder="Search email, role, phone, or ID" />
+                <div className="min-w-[180px]">
+                  <Select value={status} onValueChange={(value) => setStatus(value as 'all' | 'active' | 'disabled')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="disabled">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="form-grid">
-                <label className="field field-span-2">
-                  <span>Email</span>
-                  <input
-                    value={form.inviteEmail}
-                    onChange={(event) => setForm((current) => ({ ...current, inviteEmail: event.target.value }))}
-                    placeholder="teammate@felix.travel"
-                  />
-                </label>
-                <label className="field">
-                  <span>Role</span>
-                  <select
-                    value={form.inviteRole}
-                    onChange={(event) => setForm((current) => ({ ...current, inviteRole: event.target.value as 'agent' | 'service_provider' }))}
-                  >
-                    <option value="agent">Agent</option>
-                    <option value="service_provider">Service provider</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Provider</span>
-                  <select
-                    value={form.inviteProviderId}
-                    onChange={(event) => setForm((current) => ({ ...current, inviteProviderId: event.target.value }))}
+            }
+          >
+            <DataTable headers={['User', 'Role', 'Contact', 'Status', 'Joined']}>
+              {isLoading && <DataTableEmpty colSpan={5} label="Loading users..." />}
+              {!isLoading && filteredUsers.length === 0 && <DataTableEmpty colSpan={5} label="No users match the current filters." />}
+              {filteredUsers.map((user) => (
+                <tr
+                  key={user.id}
+                  className={user.id === selectedUserId ? 'border-b border-border/60 bg-primary/5' : 'border-b border-border/60'}
+                  onClick={() => setSelectedUserId(user.id)}
+                >
+                  <td className="cursor-pointer p-4">
+                    <EntityCell title={user.email} subtitle={user.id.slice(-8)} />
+                  </td>
+                  <td className="p-4"><Badge variant="secondary">{titleizeToken(user.role)}</Badge></td>
+                  <td className="p-4 text-sm text-muted-foreground">{user.phone ?? 'No phone set'}</td>
+                  <td className="p-4">
+                    <Badge variant={user.isActive ? 'success' : 'destructive'}>
+                      {user.isActive ? 'Active' : 'Disabled'}
+                    </Badge>
+                  </td>
+                  <td className="p-4 text-sm text-muted-foreground">{formatDate(user.createdAt)}</td>
+                </tr>
+              ))}
+            </DataTable>
+          </SectionCard>
+        }
+        side={
+          <div className="space-y-6">
+            <SectionCard
+              title="Invite operator"
+              description="Send access invites for agents or provider-side teammates."
+              action={
+                <Button onClick={() => void inviteMutation.mutateAsync()} loading={inviteMutation.isPending}>
+                  Send invite
+                </Button>
+              }
+            >
+              <div className="grid gap-4">
+                <TextField
+                  label="Email"
+                  value={form.inviteEmail}
+                  onChange={(event) => setForm((current) => ({ ...current, inviteEmail: event.target.value }))}
+                  placeholder="teammate@felix.travel"
+                />
+                <Field label="Role">
+                  <Select value={form.inviteRole} onValueChange={(value) => setForm((current) => ({ ...current, inviteRole: value as 'agent' | 'service_provider' }))}>
+                    <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="agent">Agent</SelectItem>
+                      <SelectItem value="service_provider">Service provider</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Provider context">
+                  <Select
+                    value={form.inviteProviderId || '__none'}
+                    onValueChange={(value) => setForm((current) => ({ ...current, inviteProviderId: value === '__none' ? '' : value }))}
                     disabled={form.inviteRole !== 'service_provider'}
                   >
-                    <option value="">Select provider</option>
-                    {providers.map((provider: any) => (
-                      <option key={provider.id} value={provider.id}>{provider.name}</option>
-                    ))}
-                  </select>
-                </label>
+                    <SelectTrigger><SelectValue placeholder="Select provider" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Select provider</SelectItem>
+                      {providers.map((provider: any) => (
+                        <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
               </div>
-              <button className="btn-primary" onClick={() => void inviteMutation.mutateAsync()} disabled={inviteMutation.isPending}>
-                {inviteMutation.isPending ? 'Sending...' : 'Send invite'}
-              </button>
-            </div>
+            </SectionCard>
 
-            <div className="panel-block">
-              <div className="workspace-panel-header">
-                <div>
-                  <h2 className="section-title">Selected user</h2>
-                  <p className="section-copy">Assign another operational role or change account state for the selected user.</p>
-                </div>
-                {selectedUser && <span className="badge badge-info">{titleizeToken(selectedUser.role)}</span>}
-              </div>
-
+            <SectionCard
+              title="Selected user"
+              description="Assign another role or change account state for the active user."
+              action={selectedUser ? <Badge variant="info">{titleizeToken(selectedUser.role)}</Badge> : null}
+            >
               {!selectedUser ? (
-                <div className="empty-panel">
-                  Pick a user from the roster to manage their access.
-                </div>
+                <EmptyBlock title="Pick a user from the roster" description="Choose a user to manage their role, provider context, or account state." />
               ) : (
-                <>
-                  <div className="detail-grid">
-                    <div className="detail-card">
-                      <span className="detail-label">Email</span>
-                      <strong>{selectedUser.email}</strong>
-                    </div>
-                    <div className="detail-card">
-                      <span className="detail-label">Role</span>
-                      <strong>{titleizeToken(selectedUser.role)}</strong>
-                    </div>
-                    <div className="detail-card">
-                      <span className="detail-label">Phone</span>
-                      <strong>{selectedUser.phone ?? 'Not set'}</strong>
-                    </div>
-                    <div className="detail-card">
-                      <span className="detail-label">Joined</span>
-                      <strong>{formatDate(selectedUser.createdAt)}</strong>
-                    </div>
-                  </div>
+                <div className="space-y-5">
+                  <InfoGrid>
+                    <InfoCard label="Email" value={selectedUser.email} />
+                    <InfoCard label="Role" value={titleizeToken(selectedUser.role)} />
+                    <InfoCard label="Phone" value={selectedUser.phone ?? 'Not set'} />
+                    <InfoCard label="Joined" value={formatDate(selectedUser.createdAt)} />
+                  </InfoGrid>
 
-                  <div className="form-grid">
-                    <label className="field">
-                      <span>Assign role</span>
-                      <select
-                        value={form.assignRole}
-                        onChange={(event) => setForm((current) => ({ ...current, assignRole: event.target.value as 'agent' | 'service_provider' }))}
-                      >
-                        <option value="agent">Agent</option>
-                        <option value="service_provider">Service provider</option>
-                      </select>
-                    </label>
-                    <label className="field">
-                      <span>Provider context</span>
-                      <select
-                        value={form.assignProviderId}
-                        onChange={(event) => setForm((current) => ({ ...current, assignProviderId: event.target.value }))}
+                  <div className="grid gap-4">
+                    <Field label="Assign role">
+                      <Select value={form.assignRole} onValueChange={(value) => setForm((current) => ({ ...current, assignRole: value as 'agent' | 'service_provider' }))}>
+                        <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="agent">Agent</SelectItem>
+                          <SelectItem value="service_provider">Service provider</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="Provider context">
+                      <Select
+                        value={form.assignProviderId || '__none'}
+                        onValueChange={(value) => setForm((current) => ({ ...current, assignProviderId: value === '__none' ? '' : value }))}
                         disabled={form.assignRole !== 'service_provider'}
                       >
-                        <option value="">Select provider</option>
-                        {providers.map((provider: any) => (
-                          <option key={provider.id} value={provider.id}>{provider.name}</option>
-                        ))}
-                      </select>
-                    </label>
+                        <SelectTrigger><SelectValue placeholder="Select provider" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">Select provider</SelectItem>
+                          {providers.map((provider: any) => (
+                            <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
                   </div>
 
-                  <div className="action-row">
-                    <button className="btn-secondary" onClick={() => void roleMutation.mutateAsync()} disabled={roleMutation.isPending}>
-                      {roleMutation.isPending ? 'Assigning...' : 'Assign role'}
-                    </button>
-                    <button
-                      className={selectedUser.isActive ? 'btn-danger' : 'btn-primary'}
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => void roleMutation.mutateAsync()} loading={roleMutation.isPending}>
+                      Assign role
+                    </Button>
+                    <Button
+                      variant={selectedUser.isActive ? 'destructive' : 'default'}
                       onClick={() => void accountMutation.mutateAsync(selectedUser.isActive ? 'disable' : 'enable')}
-                      disabled={accountMutation.isPending}
+                      loading={accountMutation.isPending}
                     >
-                      {accountMutation.isPending ? 'Updating...' : selectedUser.isActive ? 'Disable account' : 'Enable account'}
-                    </button>
+                      {selectedUser.isActive ? 'Disable account' : 'Enable account'}
+                    </Button>
                   </div>
-                </>
+                </div>
               )}
-            </div>
+            </SectionCard>
           </div>
-        </section>
-      </div>
-    </div>
+        }
+      />
+    </PageShell>
   );
 }
