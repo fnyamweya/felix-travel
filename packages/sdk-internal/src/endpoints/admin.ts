@@ -35,6 +35,9 @@ export function adminEndpoints(client: FelixApiClient) {
     manualLedgerAdjustment: (body: unknown, idempotencyKey: string) =>
       client.post<unknown>('/v1/admin/ledger/manual-adjustment', body, idempotencyKey),
 
+    listLedgerAccounts: () =>
+      client.get<unknown[]>('/v1/admin/ledger/accounts'),
+
     approveRefund: (refundId: string) =>
       client.post<unknown>(`/v1/admin/refunds/${refundId}/approve`),
 

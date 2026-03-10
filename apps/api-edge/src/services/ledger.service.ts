@@ -7,6 +7,11 @@ const SYSTEM_ACTOR = 'usr_admin_001';
 export class LedgerService {
   constructor(private db: DrizzleD1Database<any>) { }
 
+  async listAccounts() {
+    const repo = new LedgerRepository(this.db);
+    return repo.listAccounts();
+  }
+
   /** DR Cash Clearing (1100) / CR Provider Payable (2000) + CR Platform Revenue (4000) */
   async postPaymentReceived(opts: {
     paymentId: string;

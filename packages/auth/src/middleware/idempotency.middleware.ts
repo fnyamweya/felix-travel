@@ -12,7 +12,7 @@
  */
 import type { Context, Next } from 'hono';
 
-const LOCK_TTL_SECONDS = 30;
+const LOCK_TTL_SECONDS = 60;
 
 interface CachedResponse {
   status: number;

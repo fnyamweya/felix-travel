@@ -8,6 +8,12 @@ const SYSTEM_ACTOR_ID = 'usr_admin_001';
 export class LedgerRepository {
   constructor(private readonly db: DbClient) { }
 
+  async listAccounts() {
+    return this.db.query.ledgerAccounts.findMany({
+      orderBy: [ledgerAccounts.code],
+    });
+  }
+
   async findAccountByCode(code: string, providerId?: string | null) {
     if (providerId !== undefined) {
       return this.db.query.ledgerAccounts.findFirst({

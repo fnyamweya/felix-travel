@@ -148,6 +148,14 @@ adminRoutes.post('/invites', async (c) => {
 
 // ─── Ledger ──────────────────────────────────────────────────────
 
+adminRoutes.get('/ledger/accounts', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'ledger:view');
+    const svc = new LedgerService(createDbClient(c.env.DB));
+    const accounts = await svc.listAccounts();
+    return c.json(success(accounts));
+});
+
 adminRoutes.get('/ledger/balance/:accountCode', async (c) => {
     const session = c.get('session');
     authorize(session, 'ledger:view');
