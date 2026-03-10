@@ -22,8 +22,16 @@ export function chargesEndpoints(client: FelixApiClient) {
       client.patch<any>(`/v1/charges/definitions/${id}`, body),
 
     /** Create a rule set for a charge definition */
+    listRuleSets: (params?: { chargeDefinitionId?: string }) =>
+      client.get<any[]>('/v1/charges/rule-sets', params),
+
+    /** Create a rule set for a charge definition */
     createRuleSet: (body: unknown) =>
       client.post<any>('/v1/charges/rule-sets', body),
+
+    /** Create a charge rule within a rule set */
+    listRules: (params?: { ruleSetId?: string }) =>
+      client.get<any[]>('/v1/charges/rules', params),
 
     /** Create a charge rule within a rule set */
     createRule: (body: unknown) =>
@@ -32,6 +40,10 @@ export function chargesEndpoints(client: FelixApiClient) {
     /** Update a charge rule (rate change with audit trail) */
     updateRule: (id: string, body: unknown) =>
       client.patch<any>(`/v1/charges/rules/${id}`, body),
+
+    /** Add a dependency between two charge definitions */
+    listDependencies: (params?: { chargeDefinitionId?: string }) =>
+      client.get<any[]>('/v1/charges/dependencies', params),
 
     /** Add a dependency between two charge definitions */
     addDependency: (body: unknown) =>

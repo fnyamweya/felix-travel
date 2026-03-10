@@ -83,6 +83,17 @@ export class ChargesRepository {
     return row as ChargeRuleSetRow;
   }
 
+  async listRuleSets(definitionId?: string): Promise<ChargeRuleSetRow[]> {
+    if (definitionId) {
+      return this.db
+        .select()
+        .from(chargeRuleSets)
+        .where(eq(chargeRuleSets.chargeDefinitionId, definitionId)) as Promise<ChargeRuleSetRow[]>;
+    }
+
+    return this.db.select().from(chargeRuleSets) as Promise<ChargeRuleSetRow[]>;
+  }
+
   // ── Rules ────────────────────────────────────────────────────────────────────
 
   async findRulesForSets(ruleSetIds: string[]): Promise<ChargeRuleRow[]> {
@@ -97,6 +108,17 @@ export class ChargesRepository {
     const [row] = await this.db.insert(chargeRules).values(data).returning();
     if (!row) throw new Error('chargeRules insert returned no rows');
     return row as ChargeRuleRow;
+  }
+
+  async listRules(ruleSetId?: string): Promise<ChargeRuleRow[]> {
+    if (ruleSetId) {
+      return this.db
+        .select()
+        .from(chargeRules)
+        .where(eq(chargeRules.ruleSetId, ruleSetId)) as Promise<ChargeRuleRow[]>;
+    }
+
+    return this.db.select().from(chargeRules) as Promise<ChargeRuleRow[]>;
   }
 
   async updateRule(id: string, data: Partial<typeof chargeRules.$inferInsert>, changedBy: string, reason?: string): Promise<void> {
@@ -139,6 +161,17 @@ export class ChargesRepository {
 
   async createDependency(data: typeof chargeDependencies.$inferInsert): Promise<void> {
     await this.db.insert(chargeDependencies).values(data);
+  }
+
+  async listDependencies(definitionId?: string): Promise<ChargeDependencyRow[]> {
+    if (definitionId) {
+      return this.db
+        .select()
+        .from(chargeDependencies)
+        .where(eq(chargeDependencies.dependentChargeId, definitionId)) as Promise<ChargeDependencyRow[]>;
+    }
+
+    return this.db.select().from(chargeDependencies) as Promise<ChargeDependencyRow[]>;
   }
 
   // ── Tax Codes ────────────────────────────────────────────────────────────────

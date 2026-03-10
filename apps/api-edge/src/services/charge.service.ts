@@ -116,6 +116,10 @@ export class ChargeService {
     });
   }
 
+  async listRuleSets(chargeDefinitionId?: string) {
+    return this.repo.listRuleSets(chargeDefinitionId);
+  }
+
   // ── Admin: Rules ───────────────────────────────────────────────────────────
 
   async createRule(data: {
@@ -153,6 +157,10 @@ export class ChargeService {
     });
   }
 
+  async listRules(ruleSetId?: string) {
+    return this.repo.listRules(ruleSetId);
+  }
+
   async updateRule(id: string, data: {
     rateBps?: number;
     fixedAmount?: number;
@@ -178,6 +186,10 @@ export class ChargeService {
       dependencyType: data.dependencyType as any,
     });
     return { created: true };
+  }
+
+  async listDependencies(chargeDefinitionId?: string) {
+    return this.repo.listDependencies(chargeDefinitionId);
   }
 
   // ── Simulation ─────────────────────────────────────────────────────────────

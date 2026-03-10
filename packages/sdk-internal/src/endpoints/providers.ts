@@ -7,6 +7,12 @@ export function providerEndpoints(client: FelixApiClient) {
     list: (params?: { page?: number; pageSize?: number }) =>
       client.get<ServiceProvider[]>('/v1/admin/providers', params),
 
+    create: (body: unknown) =>
+      client.post<ServiceProvider>('/v1/admin/providers', body),
+
+    update: (id: string, body: unknown) =>
+      client.patch<ServiceProvider | null>(`/v1/admin/providers/${id}`, body),
+
     get: (id: string) => client.get<ServiceProvider>(`/v1/providers/${id}`),
 
     updateSettings: (id: string, body: unknown) =>

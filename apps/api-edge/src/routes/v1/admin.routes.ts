@@ -30,13 +30,20 @@ import type { Env } from '../../bindings.js';
 import type { SessionContext } from '@felix-travel/types';
 import { requireAuth, authorize, idempotency } from '@felix-travel/auth';
 import { hydratePermissions } from '@felix-travel/auth';
-import { createDbClient } from '@felix-travel/db';
+import { createDbClient, ProvidersRepository } from '@felix-travel/db';
 import { AdminService } from '../../services/admin.service.js';
 import { AuthService } from '../../services/auth.service.js';
 import { LedgerService } from '../../services/ledger.service.js';
 import { success } from '../../lib/response.js';
 import { ValidationError } from '../../lib/errors.js';
-import { paginationSchema, inviteCreateSchema, manualLedgerAdjustmentSchema } from '@felix-travel/validation';
+import { newId } from '../../lib/id.js';
+import {
+    paginationSchema,
+    inviteCreateSchema,
+    manualLedgerAdjustmentSchema,
+    createProviderSchema,
+    updateProviderSchema,
+} from '@felix-travel/validation';
 
 type HonoEnv = {
     Bindings: Env;
@@ -259,10 +266,64 @@ adminRoutes.get('/providers', async (c) => {
     const session = c.get('session');
     authorize(session, 'admin:access');
     const { page, pageSize } = parsePagination(c.req.query());
-    const { ProvidersRepository, createDbClient: createDb } = await import('@felix-travel/db');
-    const repo = new ProvidersRepository(createDb(c.env.DB));
+    const repo = new ProvidersRepository(createDbClient(c.env.DB));
     const providers = await repo.findAll(pageSize, (page - 1) * pageSize);
     return c.json(success(providers));
+});
+
+adminRoutes.post('/providers', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const body = await c.req.json();
+    const parsed = createProviderSchema.safeParse(body);
+    if (!parsed.success) {
+        throw new ValidationError('Invalid provider input', { issues: parsed.error.flatten().fieldErrors });
+    }
+
+    const repo = new ProvidersRepository(createDbClient(c.env.DB));
+    const provider = await repo.create({
+        id: newId(),
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        description: parsed.data.description ?? null,
+        email: parsed.data.email,
+        phone: parsed.data.phone ?? null,
+        countryCode: parsed.data.countryCode,
+        currencyCode: parsed.data.currencyCode,
+        websiteUrl: parsed.data.websiteUrl ?? null,
+        logoUrl: null,
+        isActive: true,
+        isVerified: false,
+        reserveBalanceAmount: 0,
+        deletedAt: null,
+    });
+
+    return c.json(success(provider), 201);
+});
+
+adminRoutes.patch('/providers/:providerId', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const body = await c.req.json();
+    const parsed = updateProviderSchema.safeParse(body);
+    if (!parsed.success) {
+        throw new ValidationError('Invalid provider update', { issues: parsed.error.flatten().fieldErrors });
+    }
+
+    const repo = new ProvidersRepository(createDbClient(c.env.DB));
+    const updateData = {
+        ...(parsed.data.name !== undefined && { name: parsed.data.name }),
+        ...(parsed.data.slug !== undefined && { slug: parsed.data.slug }),
+        ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+        ...(parsed.data.email !== undefined && { email: parsed.data.email }),
+        ...(parsed.data.phone !== undefined && { phone: parsed.data.phone }),
+        ...(parsed.data.countryCode !== undefined && { countryCode: parsed.data.countryCode }),
+        ...(parsed.data.currencyCode !== undefined && { currencyCode: parsed.data.currencyCode }),
+        ...(parsed.data.websiteUrl !== undefined && { websiteUrl: parsed.data.websiteUrl }),
+    };
+    const updated = await repo.update(c.req.param('providerId'), updateData);
+
+    return c.json(success(updated));
 });
 
 // ─── Audit log ────────────────────────────────────────────────────

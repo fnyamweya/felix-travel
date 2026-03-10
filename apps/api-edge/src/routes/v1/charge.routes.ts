@@ -128,6 +128,14 @@ chargeRoutes.post('/rule-sets', async (c) => {
   return c.json(success(rs), 201);
 });
 
+chargeRoutes.get('/rule-sets', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const svc = getSvc(c);
+  const chargeDefinitionId = c.req.query('chargeDefinitionId');
+  const ruleSets = await svc.listRuleSets(chargeDefinitionId);
+  return c.json(success(ruleSets));
+});
+
 // ── Rules ─────────────────────────────────────────────────────────────────────
 
 chargeRoutes.post('/rules', async (c) => {
@@ -140,6 +148,14 @@ chargeRoutes.post('/rules', async (c) => {
   }
   const rule = await svc.createRule(parsed.data as any);
   return c.json(success(rule), 201);
+});
+
+chargeRoutes.get('/rules', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const svc = getSvc(c);
+  const ruleSetId = c.req.query('ruleSetId');
+  const rules = await svc.listRules(ruleSetId);
+  return c.json(success(rules));
 });
 
 chargeRoutes.patch('/rules/:id', async (c) => {
@@ -167,6 +183,14 @@ chargeRoutes.post('/dependencies', async (c) => {
   }
   const dep = await svc.addDependency(parsed.data);
   return c.json(success(dep), 201);
+});
+
+chargeRoutes.get('/dependencies', async (c) => {
+  requireAdminOrAgent(c.get('session'));
+  const svc = getSvc(c);
+  const chargeDefinitionId = c.req.query('chargeDefinitionId');
+  const dependencies = await svc.listDependencies(chargeDefinitionId);
+  return c.json(success(dependencies));
 });
 
 // ── Simulation ─────────────────────────────────────────────────────────────────

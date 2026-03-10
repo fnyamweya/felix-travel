@@ -1,11 +1,14 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context.js';
 
-function SidebarLink({ to, icon, label }: { to: string; icon: string; label: string }) {
+function SidebarLink({ to, accent, label, caption }: { to: string; accent: string; label: string; caption: string }) {
   return (
     <NavLink to={to} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-      <span>{icon}</span>
-      <span>{label}</span>
+      <span className="sidebar-link-mark">{accent}</span>
+      <span className="sidebar-link-copy">
+        <strong>{label}</strong>
+        <small>{caption}</small>
+      </span>
     </NavLink>
   );
 }
@@ -13,68 +16,86 @@ function SidebarLink({ to, icon, label }: { to: string; icon: string; label: str
 export function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
   const isProvider = user?.role === 'service_provider';
+
+  const topbarLabel = user?.role === 'admin'
+    ? 'Admin console'
+    : user?.role === 'agent'
+      ? 'Operations console'
+      : 'Provider portal';
 
   return (
     <div className="dashboard-layout">
-      {/* Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-logo">✈ Felix Travel</div>
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-mark">FT</span>
+          <div>
+            <strong>Felix Travel</strong>
+            <small>Operations workspace</small>
+          </div>
+        </div>
 
         {!isProvider && (
           <>
-            <div className="sidebar-section">Main</div>
-            <SidebarLink to="/admin" icon="📊" label="Dashboard" />
-            <SidebarLink to="/admin/bookings" icon="📋" label="Bookings" />
-            <SidebarLink to="/admin/customers" icon="👥" label="Customers" />
-            <SidebarLink to="/admin/providers" icon="🏢" label="Providers" />
+            <div className="sidebar-section">Overview</div>
+            <SidebarLink to="/admin" accent="DB" label="Dashboard" caption="Revenue, payouts, and live activity" />
+
+            <div className="sidebar-section">Operations</div>
+            <SidebarLink to="/admin/bookings" accent="BK" label="Bookings" caption="Monitor booking throughput" />
+            <SidebarLink to="/admin/customers" accent="AC" label="Access" caption="Users, invites, and account controls" />
+            <SidebarLink to="/admin/providers" accent="PR" label="Providers" caption="Provider records and market setup" />
 
             <div className="sidebar-section">Finance</div>
-            <SidebarLink to="/admin/refunds" icon="↩️" label="Refunds" />
-            <SidebarLink to="/admin/payouts" icon="💸" label="Payouts" />
-            <SidebarLink to="/admin/charges" icon="⚙️" label="Charge Engine" />
-            <SidebarLink to="/admin/charges/simulate" icon="🧮" label="Simulator" />
+            <SidebarLink to="/admin/refunds" accent="RF" label="Refunds" caption="Refund requests and approvals" />
+            <SidebarLink to="/admin/payouts" accent="PO" label="Payouts" caption="Settlement pipeline management" />
+            <SidebarLink to="/admin/charges" accent="CH" label="Charges" caption="Definitions, rules, and dependencies" />
+            <SidebarLink to="/admin/charges/simulate" accent="SM" label="Simulator" caption="Dry-run engine output" />
 
-            <div className="sidebar-section">System</div>
-            <SidebarLink to="/admin/audit" icon="📝" label="Audit Log" />
+            <div className="sidebar-section">Control</div>
+            <SidebarLink to="/admin/audit" accent="AL" label="Audit log" caption="Operational traceability" />
           </>
         )}
 
         {isProvider && (
           <>
             <div className="sidebar-section">Provider</div>
-            <SidebarLink to="/provider" icon="📊" label="Overview" />
-            <SidebarLink to="/provider/payouts" icon="💸" label="Payouts" />
-            <SidebarLink to="/provider/settlement" icon="📄" label="Settlement" />
+            <SidebarLink to="/provider" accent="OV" label="Overview" caption="Bookings and balance overview" />
+            <SidebarLink to="/provider/payouts" accent="PO" label="Payouts" caption="Track upcoming settlements" />
+            <SidebarLink to="/provider/settlement" accent="ST" label="Settlement" caption="Statements and invoice detail" />
           </>
         )}
 
-        <div style={{ marginTop: 'auto', padding: '1rem 0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem' }}>
-            {user?.firstName} {user?.lastName}
-            <br />
-            <span style={{ fontSize: '0.75rem', opacity: 0.7, textTransform: 'capitalize' }}>{user?.role?.replace('_', ' ')}</span>
+        <div className="sidebar-user">
+          <div className="sidebar-user-copy">
+            <strong>{user?.firstName} {user?.lastName}</strong>
+            <small>{user?.email}</small>
+            <span>{user?.role?.replace('_', ' ')}</span>
           </div>
-          <button onClick={() => { logout(); navigate('/login'); }} className="btn-secondary" style={{ width: '100%', padding: '6px 10px', fontSize: '0.8125rem' }}>
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="btn-secondary"
+          >
             Sign out
           </button>
         </div>
       </aside>
 
-      {/* Main */}
       <div className="main-content">
-        <div className="topbar">
-          <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-            {user?.role === 'admin' ? 'Admin Console' : user?.role === 'agent' ? 'Agent Console' : 'Provider Portal'}
-          </span>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)' }}>
-            {new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </span>
-        </div>
-        <div className="page-content">
+        <header className="topbar">
+          <div>
+            <span className="topbar-title">{topbarLabel}</span>
+            <p className="topbar-copy">Schema-aware tools for day-to-day marketplace administration.</p>
+          </div>
+          <div className="topbar-meta">
+            <span>{new Date().toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+        </header>
+        <main className="page-content">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );
