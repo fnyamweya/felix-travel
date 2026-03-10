@@ -47,7 +47,7 @@ paymentRoutes.post(
         }
         const svc = getPaymentService(c);
         const result = await svc.initiateCheckout(parsed.data.bookingId, session, {
-            accountNumber: parsed.data.MSISDN ?? '',
+            accountNumber: parsed.data.accountNumber ?? parsed.data.MSISDN ?? '',
             ...(parsed.data.paymentOptionCode !== undefined && { paymentOption: parsed.data.paymentOptionCode }),
             ...(parsed.data.MSISDN !== undefined && { MSISDN: parsed.data.MSISDN }),
         });

@@ -91,9 +91,9 @@ export function CheckoutPage() {
   const singleMutation = useMutation({
     mutationFn: (data: { bookingId: string; MSISDN?: string; accountNumber: string; paymentOptionCode: string }) =>
       apiClient.payments.initiateCheckout(data, crypto.randomUUID()),
-    onSuccess: (result) => {
-      if (result.checkoutUrl) window.location.href = result.checkoutUrl;
-      else navigate(`/payment-status/${result.id}`);
+    onSuccess: (result: any) => {
+      if (result.checkoutURL) window.location.href = result.checkoutURL;
+      else navigate(`/payment-status/${result.paymentId}`);
     },
     onError: (err: any) => setError(err?.message ?? 'Payment initiation failed.'),
   });

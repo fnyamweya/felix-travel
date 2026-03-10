@@ -48,7 +48,7 @@ export function SearchPage() {
               <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{listing.title}</div>
               <div style={{ color: '#5e6c84', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{listing.location ?? listing.providerId}</div>
               <div style={{ fontWeight: 700, color: '#0052cc', fontSize: '1.125rem' }}>
-                {formatMoney(listing.basePrice ?? 0, listing.currencyCode ?? 'KES')}
+                {formatMoney(listing.basePrice?.amount ?? listing.basePrice ?? 0, listing.currencyCode ?? listing.basePrice?.currency ?? 'KES')}
                 <span style={{ fontWeight: 400, fontSize: '0.75rem', color: '#5e6c84' }}> / person</span>
               </div>
             </div>

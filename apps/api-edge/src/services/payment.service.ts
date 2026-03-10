@@ -33,7 +33,7 @@ export class PaymentService {
 
     const booking = await bookingsRepo.findById(bookingId);
     if (!booking) throw new NotFoundError('Booking', bookingId);
-    if (booking.status !== 'confirmed')
+    if (booking.status !== 'pending_payment' && booking.status !== 'confirmed')
       throw new ConflictError('Booking must be confirmed before payment');
     if (actor.role === 'customer' && booking.customerId !== actor.userId)
       throw new AppError('FORBIDDEN', 'Access denied', 403);
@@ -286,7 +286,7 @@ export class PaymentService {
 
     const booking = await bookingsRepo.findById(bookingId);
     if (!booking) throw new NotFoundError('Booking', bookingId);
-    if (booking.status !== 'confirmed')
+    if (booking.status !== 'pending_payment' && booking.status !== 'confirmed')
       throw new ConflictError('Booking must be confirmed before payment');
     if (actor.role === 'customer' && booking.customerId !== actor.userId)
       throw new AppError('FORBIDDEN', 'Access denied', 403);

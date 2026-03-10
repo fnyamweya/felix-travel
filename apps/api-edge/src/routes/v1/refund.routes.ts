@@ -50,7 +50,7 @@ refundRoutes.post(
             paymentId: parsed.data.paymentId,
             amount: parsed.data.amount,
             reason: parsed.data.reason,
-            idempotencyKey: parsed.data.idempotencyKey,
+            idempotencyKey: c.req.header('Idempotency-Key') ?? crypto.randomUUID(),
             ...(parsed.data.items !== undefined && { items: parsed.data.items }),
         }, session);
         return c.json(success(refund), 201);
