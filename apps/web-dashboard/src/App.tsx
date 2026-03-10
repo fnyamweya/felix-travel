@@ -16,6 +16,8 @@ import { AdminPayouts } from './pages/admin/Payouts.js';
 import { AdminAuditLog } from './pages/admin/AuditLog.js';
 import { AdminCharges } from './pages/admin/Charges.js';
 import { AdminChargeSimulator } from './pages/admin/ChargeSimulator.js';
+import { AdminRoles } from './pages/admin/Roles.js';
+import { AdminLedger } from './pages/admin/Ledger.js';
 
 // Provider pages
 import { ProviderDashboard } from './pages/provider/Dashboard.js';
@@ -60,6 +62,8 @@ export function App() {
           <Route path="/admin/payouts" element={<AdminPayouts />} />
           <Route path="/admin/charges" element={<AdminCharges />} />
           <Route path="/admin/charges/simulate" element={<AdminChargeSimulator />} />
+          <Route path="/admin/roles" element={<AdminRoles />} />
+          <Route path="/admin/ledger" element={<AdminLedger />} />
           <Route path="/admin/audit" element={<AdminAuditLog />} />
 
           {/* Provider routes */}

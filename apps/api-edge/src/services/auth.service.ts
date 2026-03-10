@@ -293,7 +293,6 @@ export class AuthService {
     const payload = buildJwtPayload({
       userId,
       sessionId,
-      role: role as Parameters<typeof buildJwtPayload>[0]['role'],
       roles: [role],
       providerId,
       issuer: this.env.JWT_ISSUER,

@@ -126,6 +126,60 @@ adminRoutes.post('/users/:userId/enable', async (c) => {
     return c.json(success(result));
 });
 
+adminRoutes.get('/users/:userId/roles', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.getUserRoles(c.req.param('userId'));
+    return c.json(success(result));
+});
+
+// ─── Roles & Permissions ────────────────────────────────────────
+
+adminRoutes.get('/roles', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.listRoles();
+    return c.json(success(result));
+});
+
+adminRoutes.get('/roles/:roleId/permissions', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.getRolePermissions(c.req.param('roleId'));
+    return c.json(success(result));
+});
+
+adminRoutes.get('/permissions', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.listPermissions();
+    return c.json(success(result));
+});
+
+adminRoutes.post('/roles/:roleId/permissions', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const { permissionId } = await c.req.json<{ permissionId: string }>();
+    if (!permissionId) throw new ValidationError('permissionId is required');
+    const svc = getAdminService(c);
+    const result = await svc.addPermissionToRole(c.req.param('roleId'), permissionId, session);
+    return c.json(success(result), 201);
+});
+
+adminRoutes.delete('/roles/:roleId/permissions/:permissionId', async (c) => {
+    const session = c.get('session');
+    authorize(session, 'admin:access');
+    const svc = getAdminService(c);
+    const result = await svc.removePermissionFromRole(
+        c.req.param('roleId'), c.req.param('permissionId'), session
+    );
+    return c.json(success(result));
+});
+
 // ─── Invites ─────────────────────────────────────────────────────
 
 adminRoutes.post('/invites', async (c) => {

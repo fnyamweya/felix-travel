@@ -9,6 +9,8 @@ import {
     riskEvents,
     roles,
     userRoles,
+    permissions,
+    rolePermissions,
 } from '@felix-travel/db/schema';
 import { ValidationError } from '../lib/errors.js';
 import { newId } from '../lib/id.js';
@@ -304,4 +306,85 @@ export class AdminService {
             .orderBy(desc(riskEvents.createdAt))
             .limit(100);
     }
-}
+    // ── Roles & Permissions ────────────────────────────────────────────────────────
+
+    async listRoles() {
+        return this.db
+            .select()
+            .from(roles)
+            .orderBy(roles.slug);
+    }
+
+    async listPermissions() {
+        return this.db
+            .select()
+            .from(permissions)
+            .orderBy(permissions.group, permissions.code);
+    }
+
+    async getRolePermissions(roleId: string) {
+        return this.db
+            .select({
+                permissionId: permissions.id,
+                code: permissions.code,
+                name: permissions.name,
+                group: permissions.group,
+            })
+            .from(rolePermissions)
+            .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+            .where(eq(rolePermissions.roleId, roleId))
+            .orderBy(permissions.group, permissions.code);
+    }
+
+    async getUserRoles(userId: string) {
+        return this.db
+            .select({
+                id: userRoles.id,
+                roleId: userRoles.roleId,
+                roleSlug: roles.slug,
+                roleName: roles.name,
+                providerId: userRoles.providerId,
+                isActive: userRoles.isActive,
+                grantedBy: userRoles.grantedBy,
+                grantedAt: userRoles.grantedAt,
+                revokedAt: userRoles.revokedAt,
+            })
+            .from(userRoles)
+            .innerJoin(roles, eq(roles.id, userRoles.roleId))
+            .where(eq(userRoles.userId, userId))
+            .orderBy(userRoles.grantedAt);
+    }
+
+    async addPermissionToRole(roleId: string, permissionId: string, session: SessionContext) {
+        await this.db.insert(rolePermissions).values({ roleId, permissionId });
+        await this.db.insert(auditLogs).values({
+            id: crypto.randomUUID(),
+            actorId: session.userId,
+            actorRole: session.role,
+            action: 'admin.permission_granted',
+            entityType: 'role',
+            entityId: roleId,
+            changes: JSON.stringify({ permissionId }),
+            ipAddress: null,
+            userAgent: null,
+        });
+        return { granted: true };
+    }
+
+    async removePermissionFromRole(roleId: string, permissionId: string, session: SessionContext) {
+        await this.db
+            .delete(rolePermissions)
+            .where(and(eq(rolePermissions.roleId, roleId), eq(rolePermissions.permissionId, permissionId)));
+        await this.db.insert(auditLogs).values({
+            id: crypto.randomUUID(),
+            actorId: session.userId,
+            actorRole: session.role,
+            action: 'admin.permission_revoked',
+            entityType: 'role',
+            entityId: roleId,
+            changes: JSON.stringify({ permissionId }),
+            ipAddress: null,
+            userAgent: null,
+        });
+        return { revoked: true };
+    }}

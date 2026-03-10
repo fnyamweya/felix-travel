@@ -46,5 +46,46 @@ export function adminEndpoints(client: FelixApiClient) {
 
     runReconciliation: (body: { fromDate: string; toDate: string }) =>
       client.post<unknown>('/v1/payments/reconcile', body),
+
+    // Ledger balance & entries
+    getLedgerBalance: (accountCode: string, currency?: string) =>
+      client.get<{ totalDebits: number; totalCredits: number; netDebitBalance: number }>(
+        `/v1/admin/ledger/balance/${encodeURIComponent(accountCode)}`,
+        currency ? { currency } : undefined
+      ),
+
+    getLedgerEntries: (accountCode: string, params?: { from?: string; to?: string }) =>
+      client.get<unknown[]>(`/v1/admin/ledger/entries/${encodeURIComponent(accountCode)}`, params),
+
+    // Roles & Permissions
+    listRoles: () =>
+      client.get<unknown[]>('/v1/admin/roles'),
+
+    listPermissions: () =>
+      client.get<unknown[]>('/v1/admin/permissions'),
+
+    getRolePermissions: (roleId: string) =>
+      client.get<unknown[]>(`/v1/admin/roles/${roleId}/permissions`),
+
+    addPermissionToRole: (roleId: string, permissionId: string) =>
+      client.post<unknown>(`/v1/admin/roles/${roleId}/permissions`, { permissionId }),
+
+    removePermissionFromRole: (roleId: string, permissionId: string) =>
+      client.delete<unknown>(`/v1/admin/roles/${roleId}/permissions/${permissionId}`),
+
+    getUserRoles: (userId: string) =>
+      client.get<unknown[]>(`/v1/admin/users/${userId}/roles`),
+
+    assignUserRole: (userId: string, roleSlug: string, providerId?: string) =>
+      client.post<unknown>(`/v1/admin/users/${userId}/roles`, { roleSlug, providerId }),
+
+    removeUserRole: (userId: string, roleSlug: string) =>
+      client.delete<unknown>(`/v1/admin/users/${userId}/roles/${roleSlug}`),
+
+    disableUser: (userId: string) =>
+      client.post<unknown>(`/v1/admin/users/${userId}/disable`),
+
+    enableUser: (userId: string) =>
+      client.post<unknown>(`/v1/admin/users/${userId}/enable`),
   };
 }

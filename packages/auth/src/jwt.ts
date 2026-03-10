@@ -6,7 +6,7 @@
  * - The public key can be distributed to frontend apps for local verification
  * - Compromising a frontend asset does not expose the signing key
  */
-import type { JwtPayload, UserRole } from '@felix-travel/types';
+import type { JwtPayload } from '@felix-travel/types';
 
 /** Base64url encode a buffer */
 function base64urlEncode(buffer: ArrayBuffer): string {
@@ -119,7 +119,6 @@ export async function verifyJwt(
 export function buildJwtPayload(opts: {
   userId: string;
   sessionId: string;
-  role: UserRole;
   roles: string[];
   providerId: string | null;
   issuer: string;
@@ -132,7 +131,6 @@ export function buildJwtPayload(opts: {
   return {
     sub: opts.userId,
     sid: opts.sessionId,
-    role: opts.role,
     roles: opts.roles,
     pid: opts.providerId,
     sal: opts.assuranceLevel ?? 0,

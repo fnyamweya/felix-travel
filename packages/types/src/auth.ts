@@ -46,7 +46,6 @@ export interface SessionContext {
 export interface JwtPayload {
   sub: string; // userId
   sid: string; // sessionId
-  role: UserRole;
   /** All active roles for the user */
   roles: string[];
   pid: string | null; // providerId

@@ -77,11 +77,13 @@ const adminNavigation: NavigationGroup[] = [
       { to: '/admin/payouts', label: 'Payouts', caption: 'Settlement pipeline and approvals', icon: Wallet },
       { to: '/admin/charges', label: 'Charges', caption: 'Definitions, rules, and dependencies', icon: Blocks },
       { to: '/admin/charges/simulate', label: 'Simulator', caption: 'Test charge outcomes before release', icon: FileSearch },
+      { to: '/admin/ledger', label: 'Ledger', caption: 'Chart of accounts, balances, and journal entries', icon: Landmark },
     ],
   },
   {
     label: 'Control',
     items: [
+      { to: '/admin/roles', label: 'Roles', caption: 'Manage roles, permissions, and access policies', icon: ShieldCheck },
       { to: '/admin/audit', label: 'Audit Log', caption: 'Trace operational and financial changes', icon: ClipboardList },
     ],
   },

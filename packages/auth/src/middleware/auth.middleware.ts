@@ -44,8 +44,8 @@ export async function requireAuth(c: Context<AuthEnv>, next: Next) {
   const session: SessionContext = {
     userId: payload.sub,
     sessionId: payload.sid,
-    role: payload.role,
-    roles: payload.roles ?? [payload.role],
+    role: (payload.roles[0] ?? 'customer') as SessionContext['role'],
+    roles: payload.roles,
     providerId: payload.pid,
     permissions: [],
     assuranceLevel: payload.sal ?? 0,
@@ -71,8 +71,8 @@ export async function optionalAuth(c: Context<AuthEnv>, next: Next) {
       c.set('session', {
         userId: payload.sub,
         sessionId: payload.sid,
-        role: payload.role,
-        roles: payload.roles ?? [payload.role],
+        role: (payload.roles[0] ?? 'customer') as SessionContext['role'],
+        roles: payload.roles,
         providerId: payload.pid,
         permissions: [],
         assuranceLevel: payload.sal ?? 0,
