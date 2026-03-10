@@ -40,7 +40,7 @@ const app = new Hono<AppEnv>();
 app.use('*', cors({
     origin: (origin) => origin, // reflect origin for credentialed requests
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key', 'X-Correlation-Id'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Idempotency-Key', 'X-Correlation-Id'],
     exposeHeaders: ['X-Correlation-Id', 'X-Request-Id'],
     maxAge: 86400,
     credentials: true,
