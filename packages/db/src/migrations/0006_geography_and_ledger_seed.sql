@@ -8,12 +8,12 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 
 INSERT OR IGNORE INTO users (id, email, email_verified, phone, phone_verified, password_hash, role, is_active, created_at, updated_at) VALUES
-  ('usr_admin_001', 'admin@felix.co.ke', 1, '+254700000000', 1,
+  ('usr_admin_001', 'felixombura@gmail.com', 1, '+254728127399', 1,
    'pbkdf2:100000:3a886c13470d87baa50c75b1610914c99791847fe1234d98ab3b49c12150c1d1:af89091c7173e015a14153bb478d3073daca8b8344aa2252e3d22cd5e2f5768d',
    'admin', 1, '2026-01-01 00:00:00', '2026-01-01 00:00:00');
 
 INSERT OR IGNORE INTO profiles (user_id, first_name, last_name, display_name, created_at, updated_at) VALUES
-  ('usr_admin_001', 'Felix', 'Admin', 'Felix Admin', '2026-01-01 00:00:00', '2026-01-01 00:00:00');
+  ('usr_admin_001', 'Felix', 'Ombura', 'Felix Ombura', '2026-01-01 00:00:00', '2026-01-01 00:00:00');
 
 -- ── Countries ─────────────────────────────────────────────────────────────────
 
@@ -343,8 +343,8 @@ INSERT OR IGNORE INTO bookings (id, reference, customer_id, provider_id, listing
    '2026-03-20', 3, 9600000, 960000, 288000, 10188000, 'KES',
    NULL, '2026-02-05 10:15:00', '2026-02-10 14:30:00'),
 
-  -- Booking 3: Diani Beach — paid, provider accepted
-  ('bk_003', 'BK-2026-00003', 'usr_cust_003', 'prv_002', 'lst_007', 'provider_accepted',
+  -- Booking 3: Diani Beach — paid, confirmed
+  ('bk_003', 'BK-2026-00003', 'usr_cust_003', 'prv_002', 'lst_007', 'confirmed',
    '2026-04-01', 2, 12500000, 1500000, 450000, 13225000, 'KES',
    'Honeymoon — any special arrangements appreciated.', '2026-02-15 16:45:00', '2026-02-20 09:00:00'),
 
