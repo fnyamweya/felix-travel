@@ -13,6 +13,7 @@ import {
   ReceiptText,
   Settings2,
   ShieldCheck,
+  Users,
   Wallet,
 } from 'lucide-react';
 import { Badge, Button, ScrollArea, cn } from '@felix-travel/ui';
@@ -71,6 +72,7 @@ const adminNav: NavGroup[] = [
     label: 'Settings',
     items: [
       { to: '/admin/roles', label: 'Roles', icon: ShieldCheck },
+      { to: '/admin/users', label: 'Users', icon: Users },
       { to: '/admin/audit', label: 'Audit log', icon: ClipboardList },
     ],
   },

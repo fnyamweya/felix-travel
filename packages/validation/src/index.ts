@@ -9,3 +9,4 @@ export * from './admin.schemas.js';
 export * from './identity.schemas.js';
 export * from './approval.schemas.js';
 export * from './charge.schemas.js';
+export * from './geography.schemas.js';

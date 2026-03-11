@@ -6,3 +6,4 @@ export * from './payouts.repository.js';
 export * from './providers.repository.js';
 export * from './ledger.repository.js';
 export * from './webhooks.repository.js';
+export * from './geography.repository.js';

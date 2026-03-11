@@ -7,6 +7,7 @@ export * from './endpoints/providers.js';
 export * from './endpoints/admin.js';
 export * from './endpoints/charges.js';
 export * from './endpoints/payouts.js';
+export * from './endpoints/geography.js';
 
 /** Factory to create a configured client with all endpoint groups */
 import { FelixApiClient, type ClientConfig } from './client.js';
@@ -18,6 +19,7 @@ import { providerEndpoints } from './endpoints/providers.js';
 import { adminEndpoints } from './endpoints/admin.js';
 import { chargesEndpoints } from './endpoints/charges.js';
 import { payoutEndpoints } from './endpoints/payouts.js';
+import { geographyEndpoints } from './endpoints/geography.js';
 
 export function createFelixClient(config: ClientConfig) {
   const client = new FelixApiClient(config);
@@ -31,6 +33,7 @@ export function createFelixClient(config: ClientConfig) {
     admin: adminEndpoints(client),
     charges: chargesEndpoints(client),
     payouts: payoutEndpoints(client),
+    geography: geographyEndpoints(client),
   };
 }
 

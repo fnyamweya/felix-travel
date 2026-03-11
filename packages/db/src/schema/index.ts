@@ -13,3 +13,4 @@ export * from './risk.js';
 export * from './permissions.js';
 export * from './approvals.js';
 export * from './charges.js';
+export * from './geography.js';
