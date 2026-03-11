@@ -3,6 +3,18 @@
 -- regions with closure table for parent/child hierarchy, and extensive
 -- ledger seed data for realistic financial views.
 
+-- ══════════════════════════════════════════════════════════════════════════════
+-- PREREQUISITE: Bootstrap admin user (referenced by ledger entries, payouts, etc.)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+INSERT OR IGNORE INTO users (id, email, email_verified, phone, phone_verified, password_hash, role, is_active, created_at, updated_at) VALUES
+  ('usr_admin_001', 'admin@felix.co.ke', 1, '+254700000000', 1,
+   'pbkdf2:100000:3a886c13470d87baa50c75b1610914c99791847fe1234d98ab3b49c12150c1d1:af89091c7173e015a14153bb478d3073daca8b8344aa2252e3d22cd5e2f5768d',
+   'admin', 1, '2026-01-01 00:00:00', '2026-01-01 00:00:00');
+
+INSERT OR IGNORE INTO profiles (user_id, first_name, last_name, display_name, created_at, updated_at) VALUES
+  ('usr_admin_001', 'Felix', 'Admin', 'Felix Admin', '2026-01-01 00:00:00', '2026-01-01 00:00:00');
+
 -- ── Countries ─────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS countries (
